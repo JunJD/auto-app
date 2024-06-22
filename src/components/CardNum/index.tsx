@@ -11,6 +11,7 @@ import { delay, incrementAlphaNumericString, incrementAlphaString, incrementNumb
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
+import { InfoContext } from "@/provider/InfoProvider";
 interface ListItem {
     value: string,
     status: string,
@@ -25,12 +26,13 @@ interface ListItem {
 
 export default function CardNum() {
     const { token } = useContext(AuthContext);
-    const [data, setData] = useState<ListItem[]>([]);
+    const { cardInfoList, setCardInfoList } = useContext(InfoContext)
     const [isGarbled, setIsGarbled] = useState('1');
     const [startComplement, setStartComplement] = useState('0000');
     const [startPosition, setStartPosition] = useState("");
     const [carNumber, setCarNumber] = useState('');
 
+    
     // 083422211000801
 
     const handleStartPosition = (value: string) => {
@@ -169,8 +171,7 @@ export default function CardNum() {
                 brand: zwpp,
             }
             
-            setData((prev: ListItem[]) => {
-
+            setCardInfoList((prev: ListItem[]) => {
                 return [...prev, current]
             })
             return current
@@ -202,7 +203,7 @@ export default function CardNum() {
                 const nodes = doc.querySelectorAll(".i-tccc-t")
                 const innerTexts = Array.from(nodes).map(node => node.textContent);
 
-                setData((prev: ListItem[]) => {
+                setCardInfoList((prev: ListItem[]) => {
                     return prev.map(pv => {
                         return pv.value === item ? {
                             ...pv,
@@ -263,7 +264,7 @@ export default function CardNum() {
                 </Stack>
             </form>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <ListTable<ListItem> data={data} columns={columns} />
+                <ListTable<ListItem> data={cardInfoList} columns={columns} />
             </Box>
         </Stack>
     )

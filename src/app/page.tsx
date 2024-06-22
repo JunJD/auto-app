@@ -6,6 +6,7 @@ import Stack from '@mui/joy/Stack';
 import TabPanel from '@mui/joy/TabPanel';
 import CardNum from '@/components/CardNum';
 import BatteryNo from '@/components/BatteryNo';
+import VerifyBattery from '@/components/VerifyBattery';
 
 export default function TabsFlex() {
   return (
@@ -19,11 +20,11 @@ export default function TabsFlex() {
         <TabPanel value={0} sx={{ overflowY: "hidden" }}>
           <CardNum />
         </TabPanel>
-        <TabPanel value={1}>
+        <TabPanel value={1} sx={{ overflowY: "hidden" }}>
           <BatteryNo />
         </TabPanel>
-        <TabPanel value={2}>
-          2
+        <TabPanel value={2} sx={{ overflowY: "hidden" }}>
+          <VerifyBattery/>
         </TabPanel>
       </Tabs>
     </Stack>
