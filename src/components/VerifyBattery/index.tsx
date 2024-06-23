@@ -7,33 +7,89 @@ import FormLabel from '@mui/joy/FormLabel';
 import Textarea from '@mui/joy/Textarea';
 import Stack from '@mui/joy/Stack';
 import { open } from "@tauri-apps/api/dialog"
-import { readTextFile } from "@tauri-apps/api/fs"
+import { readBinaryFile, readTextFile } from "@tauri-apps/api/fs"
 import { AuthContext } from '@/provider/AuthProvider';
-import { InfoContext } from '@/provider/InfoProvider';
+import { BatteryListItem, InfoContext } from '@/provider/InfoProvider';
+import { delay } from '@/utils/fetch';
+import * as xlsx from 'xlsx'
+import ListTable from '../ListTable';
+import { invoke } from '@tauri-apps/api';
 
+interface ValidBatteryListItem {
+    value: string
+}
+
+const columns: any = [
+    { key: 'value', label: '电池码' },
+]
 
 function VerifyBattery() {
     const [carNumListStr, setCarNumListStr] = React.useState('')
     const [batteryNoListStr, setBatteryNoListStr] = React.useState('')
-    const token = React.useContext(AuthContext)
+    const { token } = React.useContext(AuthContext)
     const { cardInfoList, batteryList } = React.useContext(InfoContext)
-    const verify = async () => {
-        // verifyBattery
-        // 验证逻辑
-        const response = await fetch('/api/verifyBattery', {
-            method: 'POST',
-            body: JSON.stringify({
-                carNumListStr,
-                batteryNoListStr
-            }),
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        })
-        const { data, code } = await response.json()
-        if (code === 0) {
-            console.log(data)
+
+    const [validBattery, setValidBattery] = React.useState<Array<ValidBatteryListItem>>([])
+    const verify = async (batterys = batteryNoListStr.split('\n').filter(Boolean), groupNum: number = 4) => {
+        // 对batteryList进行分组，4个为一组
+        // const batterys = batteryNoListStr.split('\n').filter(Boolean)
+
+        const dcbhurlList = []
+
+        for (let i = 0; i < batterys.length; i += groupNum) {
+            const group = batterys.slice(i, i + groupNum)
+            dcbhurlList.push(group)
+            // dcbhurlList.push(group.join('|'))
         }
+
+        console.log(dcbhurlList, 'dcbhurlList');
+
+        const resultList = []
+        for (const dcbhurl of dcbhurlList) {
+            const resolve = new Promise(async (resolve) => {
+
+                const response = await fetch('/api/verifyBattery', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token,
+                        dcbhurl: dcbhurl.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
+                        cjhurl: getCjhUrl(),
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                const result = await response.json()
+
+                await delay(1000)
+
+                if (result.code === 0) {
+                    if (dcbhurl.length > 1) {
+                        console.log(dcbhurl, '<==dcbhurl');
+                        resolve(await verify(dcbhurl, 1))
+                    }
+                    resolve(dcbhurl.join('|'))
+                }
+                resolve('')
+            })
+            resultList.push(await resolve)
+        }
+        const array = resultList.filter(Boolean).map(it => ({ value: it })) as Array<ValidBatteryListItem>
+        setValidBattery(array)
+        console.log(array, '<===resultList');
+        await invoke('my_generate_excel_command', {
+            tableData: {
+                data: array,
+                columns
+            }
+        });
+    }
+
+    function getCjhUrl() {
+        const carNums = carNumListStr.split('\n').filter(Boolean)
+        // 随机取
+        const randomCarNum = carNums[Math.floor(Math.random() * carNums.length)]
+        return `https://www.pzcode.cn/vin/${randomCarNum}`
     }
 
     const carNumListLength = React.useMemo(() => {
@@ -58,14 +114,14 @@ function VerifyBattery() {
     }
 
     const importBatteryNo = async () => {
-        const text = await getFileText()
-        console.log(text, 'text2')
+        const dataJson = await getFileText()
+        const text = (dataJson as Array<{ '电池码': string }>).map(it => it['电池码']).join('\n')
+
         setBatteryNoListStr(text)
     }
     const importCarNum = async () => {
         const text = await getFileText()
-        console.log(text, 'text1')
-        setCarNumListStr(text)
+        // setCarNumListStr(text)
     }
 
     async function getFileText() {
@@ -73,13 +129,24 @@ function VerifyBattery() {
             filters: [
                 {
                     name: 'txt',
-                    extensions: ['txt'],
+                    extensions: ['txt', 'xlsx'],
                 },
             ],
             multiple: false,
         })
         if (!filePath) return ''
-        return await readTextFile(filePath as string)
+
+        const data = new Uint8Array(await readBinaryFile(filePath as string))
+
+        const workbook = xlsx.read(data, { type: 'array' });
+
+        // 假设你想读取第一个工作表的数据
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        const jsonData = xlsx.utils.sheet_to_json(worksheet);
+        console.log(jsonData); // 输出表格数据
+        return jsonData
+
     }
 
     return (
@@ -155,11 +222,14 @@ function VerifyBattery() {
                 sx={{
                     mt: 'var(--Card-paddingBlock)',
                 }}
-                onClick={verify}
+                onClick={() => verify()}
                 disabled={!carNumListStr || !batteryNoListStr}
                 fullWidth
                 color="primary"
             >验证</Button>
+            <Box sx={{ flex: 1, overflow: 'auto' }}>
+                <ListTable<ValidBatteryListItem> data={validBattery} columns={columns} />
+            </Box>
         </Stack>
     );
 }

@@ -8,7 +8,11 @@ export const fetchD = async () => {
 }
 
 export const delay = (ms: number) => {
-    return new Promise(resolve => setTimeout(resolve, ms))
+    return new Promise(resolve => {
+        setTimeout(()=>{
+            resolve(ms)
+        }, ms)
+    })
 }
 
 // 仅有字母递增
@@ -73,6 +77,7 @@ export const incrementAlphaNumericString = (str: string): string => {
         arr.unshift('1');
     }
 
+    console.log(arr.join(''), "arr.join('')")
     return arr.join('');
 };
 

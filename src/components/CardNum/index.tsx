@@ -151,6 +151,7 @@ export default function CardNum() {
             return `${leftV}${currentString}${rightV}`
         })
 
+        setCardInfoList([])
         const array = await Promise.all(list.map(async (item) => {
             const result = await getCardNumFetch(item)
             if (!result) return null
@@ -199,7 +200,7 @@ export default function CardNum() {
                 const { text, url } = result
                 let domParser = new DOMParser();
                 let doc = domParser.parseFromString(text, "text/html");
-                console.log(text)
+
                 const nodes = doc.querySelectorAll(".i-tccc-t")
                 const innerTexts = Array.from(nodes).map(node => node.textContent);
 

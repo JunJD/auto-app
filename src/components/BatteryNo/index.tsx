@@ -13,6 +13,12 @@ import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
 
+const columns: any = [
+    { key: 'value', label: '电池码' },
+    { key: 'battery_model', label: '电池型号' },
+    { key: 'battery_type', label: '电池类型' },
+    { key: 'bfn_or_oe', label: '电池品牌' },
+];
 export default function BatteryNo() {
     const { token } = useContext(AuthContext);
     const { batteryList, setBatteryListItem } = useContext(InfoContext)
@@ -138,6 +144,7 @@ export default function BatteryNo() {
             return `${leftV}${currentString}${rightV}`
         })
 
+        setBatteryListItem([])
         const array = await Promise.all(list.map(async (item) => {
             const result = await getBatteryNoFetch(item)
             if (!result) return null
@@ -158,13 +165,20 @@ export default function BatteryNo() {
             }
             
             setBatteryListItem((prev: BatteryListItem[]) => {
-                return [...prev, current]
+                return [current, ...prev]
             })
             return current
         }))
         invoke('find_battery_nums_by_ids', {
             array: array.filter(Boolean).map(item => item!.value)
         });
+
+        // await invoke('my_generate_excel_command', {
+        //     tableData: {
+        //         data: array,
+        //         columns
+        //     }
+        // });
     }
 
 
@@ -182,12 +196,7 @@ export default function BatteryNo() {
         return null
     }
 
-    const columns: any = [
-        { key: 'value', label: '电池码' },
-        { key: 'battery_model', label: '电池型号' },
-        { key: 'battery_type', label: '电池类型' },
-        { key: 'bfn_or_oe', label: '电池品牌' },
-    ];
+
 
     return (
         <Stack spacing={2} height={'100%'}>

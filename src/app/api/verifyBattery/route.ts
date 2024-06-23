@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 
 export const POST = async function (req: Request) {
-    const { token, dcbhurlList, cjhurl } = await req.json()
+    const { token, dcbhurl, cjhurl } = await req.json()
+    console.log({ token, dcbhurl, cjhurl }, '{ token, dcbhurl, cjhurl }')
     const response = await fetch(`
-    https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/checkCjhDc?city=0573&token=${token}&cjhurl=${cjhurl}&&dcbhurl=${(dcbhurlList as Array<string>).join("|")}
+    https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/checkCjhDc?city=0573&token=${token}&cjhurl=${cjhurl}&dcbhurl=${dcbhurl}
     `, {
         method: "GET",
         headers: {
@@ -15,5 +16,5 @@ export const POST = async function (req: Request) {
     })
     const data = await response.json()
 
-    return NextResponse.json({ ...data, url: `https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/checkCjhDc?city=0573&token=${token}&cjhurl=${cjhurl}&&dcbhurl=${(dcbhurlList as Array<string>).join("|")}` }, { status: 200 })
+    return NextResponse.json({ ...data, url: `/checkCjhDc?dcbhurl=${dcbhurl}&city=0573&token=${token}&cjhurl=${cjhurl}` }, { status: 200 })
 }
