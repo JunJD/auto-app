@@ -6,8 +6,8 @@ import Select from "@mui/joy/Select";
 import Option from '@mui/joy/Option';
 import Stack from "@mui/joy/Stack";
 import FormLabel from '@mui/joy/FormLabel';
-import { FormEvent, FormEventHandler, useContext, useRef, useState } from "react";
-import { delay, incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
+import { FormEvent, useContext, useState } from "react";
+import { incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'

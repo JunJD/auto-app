@@ -16,7 +16,7 @@ function VerifyBattery() {
     const [carNumListStr, setCarNumListStr] = React.useState('')
     const [batteryNoListStr, setBatteryNoListStr] = React.useState('')
     const token = React.useContext(AuthContext)
-    const { cardInfoList } = React.useContext(InfoContext)
+    const { cardInfoList, batteryList } = React.useContext(InfoContext)
     const verify = async () => {
         // verifyBattery
         // 验证逻辑
@@ -53,7 +53,8 @@ function VerifyBattery() {
     }
 
     const autoSyncBatteryNo = async () => {
-
+        const str = batteryList.map(it => it.value).join('\n')
+        setBatteryNoListStr(str)
     }
 
     const importBatteryNo = async () => {
@@ -135,7 +136,7 @@ function VerifyBattery() {
                                     }}
                                 >
                                     {`当前有：${batteryNoListLength}个`}
-                                    <Button sx={{ ml: 'auto' }} onClick={autoSyncBatteryNo}>自动获取电池码</Button>
+                                    {batteryList.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncBatteryNo}>自动获取电池码</Button>}
                                     <Button sx={{ ml: 'auto' }} onClick={importBatteryNo}>
                                         <label htmlFor="file-upload">
                                             导入电池码

@@ -3,26 +3,39 @@
 import appStorage from "@/utils/appStorage";
 import { Dispatch, SetStateAction, createContext, useEffect, useRef, useState } from "react"
 
-interface ListItem {
+export interface CarListItem {
     value: string,
     status: string,
     battery_model?: string, //电池型号
     battery_type?: string, // 电池类型
     bfn_or_oe?: string, // 电池品牌
     brand?: string //中文品牌
-
     // battery_num
     battery_num?: string, // 电池编号
 }
 
+export interface BatteryListItem {
+    value: string, // qydcbm
+    status: string,
+    battery_model?: string, //电池型号 dcxh
+    battery_type?: string, // 电池类型 dclx
+    bfn_or_oe?: string, // 电池品牌 // dcpp
+    // dcrl 电池容量
+}
+
 export const InfoContext = createContext<
     {
-        cardInfoList: Array<ListItem>,
-        setCardInfoList: Dispatch<SetStateAction<ListItem[]>>
+        cardInfoList: Array<CarListItem>,
+        setCardInfoList: Dispatch<SetStateAction<CarListItem[]>>,
+
+        batteryList: Array<BatteryListItem>,
+        setBatteryListItem: Dispatch<SetStateAction<BatteryListItem[]>>,
     }
 >({
     cardInfoList: [],
-    setCardInfoList: () => { }
+    batteryList: [],
+    setCardInfoList: () => { },
+    setBatteryListItem: () => { }
 })
 
 export default function InfoProvider({
@@ -30,13 +43,18 @@ export default function InfoProvider({
 }: Readonly<{
     children: React.ReactNode;
 }>) {
-    const [cardInfoList, setCardInfoList] = useState<Array<ListItem>>([])
+    const [cardInfoList, setCardInfoList] = useState<Array<CarListItem>>([])
+    const [batteryList, setBatteryListItem] = useState<Array<BatteryListItem>>([])
     const firstRef = useRef(true)
     useEffect(() => {
         if(firstRef.current) {
             const list = appStorage.getItem("cardInfoList")
+            const batteryList = appStorage.getItem("batteryListItem")
             if(list) {
                 setCardInfoList(JSON.parse(list))
+            }
+            if(batteryList) {
+                setBatteryListItem(JSON.parse(batteryList))
             }
         }
 
@@ -45,7 +63,7 @@ export default function InfoProvider({
         }
     }, [])
     
-    const _setCardInfoList: Dispatch<SetStateAction<ListItem[]>> = (payload) => {
+    const _setCardInfoList: Dispatch<SetStateAction<CarListItem[]>> = (payload) => {
         if(typeof payload === 'function') {
             setCardInfoList(prev=>{
                 const list = payload(prev)
@@ -59,8 +77,24 @@ export default function InfoProvider({
         }
     }
 
+    const _setBatteryListItem: Dispatch<SetStateAction<BatteryListItem[]>> = (payload) => {
+        if(typeof payload === 'function') {
+            setBatteryListItem(prev=>{
+                const list = payload(prev)
+                appStorage.setItem("batteryListItem", JSON.stringify(list))
+                return list
+
+            })
+
+        } else {
+            const list = payload
+            appStorage.setItem("batteryListItem", JSON.stringify(list))
+            setBatteryListItem(list)
+        }
+    }
+
     return (
-        <InfoContext.Provider value={{ cardInfoList, setCardInfoList: _setCardInfoList }}>
+        <InfoContext.Provider value={{ cardInfoList, setCardInfoList: _setCardInfoList, batteryList, setBatteryListItem: _setBatteryListItem }}>
             {children}
         </InfoContext.Provider>
     )
