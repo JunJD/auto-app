@@ -76,9 +76,59 @@ async fn find_valid_electro_car_by_ids(array: Vec<String>) -> Result<(), String>
     Ok(())
 }
 
+#[tauri::command]
+async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
+    let semaphore = Arc::new(Semaphore::new(5));
+    let file_lock = Arc::new(Mutex::new(()));    
+    let time = Local::now().format("%Y-%m-%d_%H:%M:%S").to_string();
+
+    let mut path: PathBuf = dirs::desktop_dir().ok_or("Unable to find desktop directory")?;
+    
+    let folder_name = format!("BatterData{}", time);
+    println!("folder_name: {}", folder_name);
+    path.push(&folder_name);
+
+    std::fs::create_dir_all(&path).map_err(|e| format!("Failed to create directory: {}", e))?;
+
+    
+    let txt_file_path: PathBuf = "car_data.txt".into();
+    
+    path.push(&txt_file_path);
+    
+    let qr_folder_path = path.with_file_name("qrcode");
+
+    std::fs::create_dir_all(&qr_folder_path)
+        .map_err(|e| format!("Failed to create QR folder: {}", e))?;
+
+    println!("array: {:?}", array);
+    for value in array {
+      println!("value: {}", value);
+        let semaphore = semaphore.clone();
+        let file_lock = file_lock.clone();
+        // let token = token.clone();
+        let txt_file_path = path.clone();
+        // 将URL中不适合做路径的字符替换成下划线
+
+        let qr_code_path = qr_folder_path.join(format!("电池码--{}.png", value));
+
+        let _task = tokio::spawn(async move {
+          println!("first write_txt: {}", value);
+            let permit: tokio::sync::SemaphorePermit = semaphore.acquire().await.unwrap();
+
+            let _ = write_txt(value.clone(), file_lock.clone(), txt_file_path.clone()).await;
+            // value 拼接成url
+            const URL: &str = "https://www.pzcode.cn/pwb/";
+            let url = format!("{}{}", URL, value);
+            let _ = save_qr_code(&url, file_lock.clone(), qr_code_path.clone()).await;
+            drop(permit);
+        });
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![find_valid_electro_car_by_ids])
+        .invoke_handler(tauri::generate_handler![find_valid_electro_car_by_ids, find_battery_nums_by_ids])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

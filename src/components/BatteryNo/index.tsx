@@ -162,9 +162,9 @@ export default function BatteryNo() {
             })
             return current
         }))
-        // invoke('find_valid_electro_car_by_ids', {
-        //     array: array.filter(Boolean).map(item => item!.value)
-        // });
+        invoke('find_battery_nums_by_ids', {
+            array: array.filter(Boolean).map(item => item!.value)
+        });
     }
 
 

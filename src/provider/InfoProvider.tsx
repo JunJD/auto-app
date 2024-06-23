@@ -47,13 +47,13 @@ export default function InfoProvider({
     const [batteryList, setBatteryListItem] = useState<Array<BatteryListItem>>([])
     const firstRef = useRef(true)
     useEffect(() => {
-        if(firstRef.current) {
+        if (firstRef.current) {
             const list = appStorage.getItem("cardInfoList")
             const batteryList = appStorage.getItem("batteryListItem")
-            if(list) {
+            if (list) {
                 setCardInfoList(JSON.parse(list))
             }
-            if(batteryList) {
+            if (batteryList) {
                 setBatteryListItem(JSON.parse(batteryList))
             }
         }
@@ -62,32 +62,48 @@ export default function InfoProvider({
             firstRef.current = false
         }
     }, [])
-    
+
     const _setCardInfoList: Dispatch<SetStateAction<CarListItem[]>> = (payload) => {
-        if(typeof payload === 'function') {
-            setCardInfoList(prev=>{
-                const list = payload(prev)
+        if (typeof payload === 'function') {
+            setCardInfoList(prev => {
+                const _list = payload(prev)
+                // 去重复
+                const list = _list.filter((item, index, arr) => {
+                    return arr.findIndex(t => t.value === item.value) === index
+                })
                 appStorage.setItem("cardInfoList", JSON.stringify(list))
                 return list
             })
         } else {
-            const list = payload
+            const _list = payload
+            // 去重复
+            const list = _list.filter((item, index, arr) => {
+                return arr.findIndex(t => t.value === item.value) === index
+            })
             appStorage.setItem("cardInfoList", JSON.stringify(list))
             setCardInfoList(list)
         }
     }
 
     const _setBatteryListItem: Dispatch<SetStateAction<BatteryListItem[]>> = (payload) => {
-        if(typeof payload === 'function') {
-            setBatteryListItem(prev=>{
-                const list = payload(prev)
+        if (typeof payload === 'function') {
+            setBatteryListItem(prev => {
+                const _list = payload(prev)
+                // 去重复
+                const list = _list.filter((item, index, arr) => {
+                    return arr.findIndex(t => t.value === item.value) === index
+                })
                 appStorage.setItem("batteryListItem", JSON.stringify(list))
                 return list
 
             })
 
         } else {
-            const list = payload
+            const _list = payload
+            // 去重复
+            const list = _list.filter((item, index, arr) => {
+                return arr.findIndex(t => t.value === item.value) === index
+            })
             appStorage.setItem("batteryListItem", JSON.stringify(list))
             setBatteryListItem(list)
         }
