@@ -7,8 +7,8 @@ export interface CarListItem {
     value: string,
     status: string,
     battery_model?: string, //电池型号
-    battery_type?: string, // 电池类型
-    bfn_or_oe?: string, // 电池品牌
+    battery_type: string, // 电池类型
+    bfn_or_oe: string, // 电池品牌
     brand?: string //中文品牌
     batteryCapacity: string, // 电池容量
     
@@ -20,8 +20,8 @@ export interface BatteryListItem {
     value: string, // qydcbm
     status: string,
     battery_model?: string, //电池型号 dcxh
-    battery_type?: string, // 电池类型 dclx
-    bfn_or_oe?: string, // 电池品牌 // dcpp
+    battery_type: string, // 电池类型 dclx
+    bfn_or_oe: string, // 电池品牌 // dcpp
     // dcrl 电池容量
     batteryCapacity: string
 }

@@ -73,7 +73,6 @@ async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
     let mut path: PathBuf = dirs::desktop_dir().ok_or("Unable to find desktop directory")?;
     
     let folder_name = format!("BatterData{}", time);
-    println!("folder_name: {}", folder_name);
     path.push(&folder_name);
 
     std::fs::create_dir_all(&path).map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -89,7 +88,6 @@ async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
         .map_err(|e| format!("Failed to create QR folder: {}", e))?;
 
     for value in array {
-      println!("value: {}", value);
         let semaphore = semaphore.clone();
         let file_lock = file_lock.clone();
         // let token = token.clone();
@@ -99,7 +97,6 @@ async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
         let qr_code_path = qr_folder_path.join(format!("电池码--{}.png", value));
 
         let _task = tokio::spawn(async move {
-          println!("first write_txt: {}", value);
             let permit: tokio::sync::SemaphorePermit = semaphore.acquire().await.unwrap();
 
             let _ = write_txt(value.clone(), file_lock.clone(), txt_file_path.clone()).await;
@@ -117,35 +114,37 @@ async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
 #[tauri::command]
 async fn my_generate_excel_command(
     table_data: ListTableProps<serde_json::Value>,
+    folder_name_string: String,
+    xlsx_file_path_string: String,
 ) -> Result<String, String> {
-
-    println!("table_data: {:?}", table_data);
     
     let file_lock = Arc::new(Mutex::new(()));
 
     let time = Local::now().format("%Y-%m-%d_%H:%M:%S").to_string();
     
-    let mut path: PathBuf = dirs::desktop_dir().ok_or("Unable to find desktop directory")?;
+    // Attempt to find the desktop directory
+    let desktop_dir = match dirs::desktop_dir() {
+        Some(dir) => dir,
+        None => return Err("Unable to find desktop directory".to_string()),
+    };
+
+    let mut path: PathBuf = desktop_dir;
     
-    let folder_name = format!("BatterData{}", time);
+    let folder_name = format!("{}{}",folder_name_string, time);
     
     path.push(&folder_name);
 
     std::fs::create_dir_all(&path).map_err(|e| format!("Failed to create directory: {}", e))?;
     
-    let xlsx_file_path: PathBuf = "car_data.xlsx".into();
+    let xlsx_file_path = format!("{}.xlsx",xlsx_file_path_string);
     
     path.push(&xlsx_file_path);
-
-    println!("path: {:?}", path);
     
     match save_excel(table_data, file_lock, path.clone()).await {
         Ok(_) => {
-            println!("Excel file saved successfully at {:?}", path);
             Ok(path.to_string_lossy().to_string())
         },
         Err(e) => {
-            println!("Failed to save Excel file: {}", e);
             Err(e)
         },
     }

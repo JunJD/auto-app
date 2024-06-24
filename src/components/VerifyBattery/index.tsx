@@ -27,7 +27,7 @@ function VerifyBattery() {
     const [carNumListStr, setCarNumListStr] = React.useState('')
     const [batteryNoListStr, setBatteryNoListStr] = React.useState('')
     const { token } = React.useContext(AuthContext)
-    const { cardInfoList, batteryList } = React.useContext(InfoContext)
+    const { cardInfoList, setCardInfoList, batteryList, setBatteryListItem } = React.useContext(InfoContext)
 
     const [validBattery, setValidBattery] = React.useState<Array<ValidBatteryListItem>>([])
 
@@ -36,37 +36,37 @@ function VerifyBattery() {
 
     React.useEffect(() => {
         const splitBatteryArray = batteryNoListStr.split('\n').filter(Boolean)
+        console.log(splitBatteryArray, 'splitBatteryArray')
         if (splitBatteryArray.length > 0) {
-            setBatteryMap((prev) => {
-                for (const batteryItem of splitBatteryArray) {
-                    const findInfo = batteryList.find(item => item.value === batteryItem)
-                    const key = `${findInfo?.bfn_or_oe}-${findInfo?.batteryCapacity}-${findInfo?.battery_type}`
-                    if (prev.has(key)) {
-                        prev.get(key)?.push(batteryItem)
-                    } else {
-                        prev.set(key, [batteryItem])
-                    }
+            const map = new Map()
+            for (const batteryItem of splitBatteryArray) {
+                const findInfo = batteryList.find(item => item.value === batteryItem)
+                const key = `${findInfo?.bfn_or_oe}-${findInfo?.batteryCapacity}-${findInfo?.battery_type}`
+                if (map.has(key)) {
+                    map.get(key)?.push(batteryItem)
+                } else {
+                    map.set(key, [batteryItem])
                 }
-                return prev
-            })
+            }
+            
+            setBatteryMap(map)
         }
 
     }, [batteryNoListStr])
     React.useEffect(() => {
-        const splitCarNumArray = carNumListStr.split('\n').filter(Boolean)        
+        const splitCarNumArray = carNumListStr.split('\n').filter(Boolean)
         if (splitCarNumArray.length > 0) {
-            setCarNumMap((prev) => {
-                for (const CarNumItem of splitCarNumArray) {
-                    const findInfo = cardInfoList.find(item => item.value === CarNumItem)
-                    const key = `${findInfo?.bfn_or_oe}-${findInfo?.batteryCapacity}-${findInfo?.battery_type}`
-                    if (prev.has(key)) {
-                        prev.get(key)?.push(CarNumItem)
-                    } else {
-                        prev.set(key, [CarNumItem])
-                    }
+            const map = new Map()
+            for (const CarNumItem of splitCarNumArray) {
+                const findInfo = cardInfoList.find(item => item.value === CarNumItem)
+                const key = `${findInfo?.bfn_or_oe}-${findInfo?.batteryCapacity}-${findInfo?.battery_type}`
+                if (map.has(key)) {
+                    map.get(key)?.push(CarNumItem)
+                } else {
+                    map.set(key, [CarNumItem])
                 }
-                return prev
-            })
+            }
+            setCarNumMap(map)
         }
 
     }, [carNumListStr])
@@ -76,14 +76,14 @@ function VerifyBattery() {
         console.log(carNumMap, 'carNumMap')
 
         batteryMap.forEach((value, key) => {
-            if(carNumMap.has(key)) {
+            if (carNumMap.has(key)) {
                 const keyItem = key.split('-')
                 const batteryType = keyItem[2]
 
-                if(batteryType==='铅酸') {
-                    verifyForQS(value, carNumMap.get(key)!)
+                if (batteryType === '铅酸') {
+                    verifyForQS([...value], carNumMap.get(key)!)
                 } else {
-                    verifyForLD(value, carNumMap.get(key)!)
+                    verifyForLD([...value], carNumMap.get(key)!)
                 }
             } else {
                 console.error('not has');
@@ -101,7 +101,7 @@ function VerifyBattery() {
         // carNums 组成2维数组，四个为一组，最后一组不够的向前面的借
         const groupNum: number = 4
         const resultList: string[][] = []
-        
+
         const dcbhurlList: string[][] = []
 
         for (let i = 0; i < batterys.length; i += groupNum) {
@@ -111,7 +111,7 @@ function VerifyBattery() {
 
         while (dcbhurlList.length > 0) {
             const batterys = dcbhurlList.shift()
-            if(!batterys) break
+            if (!batterys) break
             const response = await fetch('/api/verifyBattery', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -123,28 +123,41 @@ function VerifyBattery() {
                     'Content-Type': 'application/json',
                 },
             })
-            
+
             const result = await response.json()
 
             await delay(1000)
 
             if (result.code === 0) {
                 resultList.push(batterys)
-                setValidBattery(prev=>[...prev, { value: batterys.join("|") }])
-            } else if(result.msg==='操作频繁，请稍后再试') {
+                setValidBattery(prev => [...prev, { value: batterys.join("|") }].filter((item, index) => {
+                    const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
+                    if (findIndex === -1) return true
+                    return findIndex === index
+                }))
+            } else if (result.msg === '操作频繁，请稍后再试') {
+                console.log('操作频繁，请稍后再试 batterys===>', batterys);
+
                 await delay(1000)
                 dcbhurlList.push(batterys!)
             }
         }
-        
+
         return resultList
     }
 
     const verifyForLD = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
         const resultList = []
-        
+
+        const retryLimit = 3; // 设置最大重试次数
+        const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
+
         while (batterys.length > 0) {
             const battery = batterys.shift()
+            const redoBattery = validBattery.find(item => item.value === battery)
+            if (redoBattery) {
+                continue
+            }
             const response = await fetch('/api/verifyBattery', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -159,14 +172,27 @@ function VerifyBattery() {
             const result = await response.json()
 
             await delay(1000)
-            console.log(result.msg, 'result.msg');
-            
+
             if (result.code === 0) {
                 resultList.push(battery)
-                setValidBattery(prev=>[...prev, { value: battery! }])
-            } else if(result.msg==='操作频繁，请稍后再试') {
-                await delay(1000)
-                batterys.push(battery!)
+                setValidBattery(prev => [...prev, { value: battery! }].filter((item, index) => {
+                    const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
+                    if (findIndex === -1) return true
+                    return findIndex === index
+                }))
+            } else if (result.msg === '操作频繁，请稍后再试') {
+                console.log('操作频繁，请稍后再试 batterys===>', battery);
+                if (!retryCounts[battery!]) {
+                    retryCounts[battery!] = 0;
+                }
+                retryCounts[battery!]++;
+
+                if (retryCounts[battery!] < retryLimit) {
+                    await delay(1000);
+                    batterys.push(battery!);
+                } else {
+                    console.log(`Battery ${battery} has reached the maximum retry limit.`);
+                }
             }
         }
 
@@ -200,9 +226,18 @@ function VerifyBattery() {
     }
 
     const importBatteryNo = async () => {
-        const dataJson = await getFileText()
         let text = ''
         try {
+            const dataJson = await getFileText() as Array<{ '电池码': string, '电池品牌': string, 电池容量: string, 电池类型: string }>
+
+            const data = dataJson.map(item => ({
+                value: item.电池码,
+                status: 'success',
+                battery_type: item.电池类型,
+                bfn_or_oe: item.电池品牌,
+                batteryCapacity: item.电池容量,
+            }))
+            setBatteryListItem(data)
             text = (dataJson as Array<{ '电池码': string }>).map(it => it['电池码']).join('\n')
         } catch (error) {
 
@@ -211,8 +246,23 @@ function VerifyBattery() {
         setBatteryNoListStr(text)
     }
     const importCarNum = async () => {
-        const text = await getFileText()
-        // setCarNumListStr(text)
+        let text = ''
+        try {
+            const dataJson = await getFileText() as Array<{ '车架号': string, '电池品牌': string, 电池容量: string, 电池类型: string }>
+
+            const carData = dataJson.map(item => ({
+                value: item.车架号,
+                status: 'success',
+                battery_type: item.电池类型,
+                bfn_or_oe: item.电池品牌,
+                batteryCapacity: item.电池容量,
+            }))
+            setCardInfoList(carData)
+            text = (dataJson as Array<{ '车架号': string }>).map(it => it['车架号']).join('\n')
+        } catch (error) {
+
+        }
+        setCarNumListStr(text)
     }
 
     async function getFileText() {
@@ -308,15 +358,16 @@ function VerifyBattery() {
                     </FormControl>
                 </Stack>
             </form>
-            <Button
-                sx={{
-                    mt: 'var(--Card-paddingBlock)',
-                }}
-                onClick={() => verifyStart()}
-                disabled={!carNumListStr || !batteryNoListStr}
-                fullWidth
-                color="primary"
-            >验证</Button>
+            <Stack spacing={1} direction="row">
+                <Button
+                    sx={{
+                        mt: 'var(--Card-paddingBlock)',
+                    }}
+                    onClick={() => verifyStart()}
+                    disabled={!carNumListStr || !batteryNoListStr}
+                    color="primary"
+                >验证</Button>
+            </Stack>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <ListTable<ValidBatteryListItem> data={validBattery} columns={columns} />
             </Box>

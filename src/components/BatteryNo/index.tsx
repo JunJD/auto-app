@@ -180,7 +180,9 @@ export default function BatteryNo() {
             tableData: {
                 data: array,
                 columns
-            }
+            },
+            folderNameString: '电池码',
+            xlsxFilePathString: 'batteryNo'
         });
         setLoading(false)
     }
@@ -223,8 +225,8 @@ export default function BatteryNo() {
                                 handleStartPosition("")
                                 handleStartComplement('')
                             }} sx={{ flex: 1 }} />
-                        <FormLabel>品牌号</FormLabel>
-                        <Input name="carBrand" sx={{ flex: 1 }} />
+                        {/* <FormLabel>品牌号</FormLabel> */}
+                        {/* <Input name="carBrand" sx={{ flex: 1 }} /> */}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <FormLabel>开始位置</FormLabel>

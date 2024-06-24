@@ -15,13 +15,14 @@ import { CarListItem, InfoContext } from "@/provider/InfoProvider";
 
 const columns: any = [
     { key: 'value', label: '车架号' },
-    { key: 'battery_num', label: '电池码' },
+    { key: 'batteryNum', label: '电池码' },
     { key: 'battery_type', label: '电池类型' },
     { key: 'bfn_or_oe', label: '电池品牌' },
     { key: 'batteryCapacity', label: '电池容量' },
 ];
 
 export default function CardNum() {
+    const [loading, setLoading] = useState(false);
     const { token } = useContext(AuthContext);
     const { cardInfoList, setCardInfoList } = useContext(InfoContext)
     const [isGarbled, setIsGarbled] = useState('1');
@@ -111,6 +112,7 @@ export default function CardNum() {
 
     async function onSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setLoading(true)
         const formData = new FormData(event.currentTarget);
 
         const carNumber = formData.get('carNumber') as string;
@@ -158,18 +160,20 @@ export default function CardNum() {
                 dclx,
                 dcpp,
                 zwpp,
-                dcrl
+                dcrl,
+                batteryNum
             } = result
             console.log(result, 'result');
 
             const current = {
                 value: item,
                 status: 'success',
-                battery_model: dcxh,
+                // batteryModel: dcxh,
                 battery_type: dclx,
                 bfn_or_oe: dcpp,
                 brand: zwpp,
                 batteryCapacity: dcrl,
+                batteryNum: batteryNum,
             }
 
             setCardInfoList((prev: CarListItem[]) => {
@@ -180,12 +184,16 @@ export default function CardNum() {
         // invoke('find_valid_electro_car_by_ids', {
         //     array: array.filter(Boolean).map(item => item!.value)
         // });
+
         await invoke('my_generate_excel_command', {
             tableData: {
                 data: array,
                 columns
-            }
+            },
+            folderNameString: 'carNum',
+            xlsxFilePathString: 'carNum'
         });
+        setLoading(false)
     }
 
 
@@ -197,29 +205,24 @@ export default function CardNum() {
         const result = await response.json()
 
         if (result.code === 0) {
-            fetch('/api/getBatteryInfoByCarNum', {
-                method: "POST",
-                body: JSON.stringify({ cardNum: item }),
-            }).then(res => {
-                return res.json()
-            }).then(result => {
-                const { text, url } = result
+            try {
+                const batteryTextDomRes = await fetch('/api/getBatteryInfoByCarNum', {
+                    method: "POST",
+                    body: JSON.stringify({ cardNum: item }),
+                })
+                const { text } = await batteryTextDomRes.json()
+
                 let domParser = new DOMParser();
                 let doc = domParser.parseFromString(text, "text/html");
 
                 const nodes = doc.querySelectorAll(".i-tccc-t")
+
                 const innerTexts = Array.from(nodes).map(node => node.textContent);
 
-                setCardInfoList((prev: CarListItem[]) => {
-                    return prev.map(pv => {
-                        return pv.value === item ? {
-                            ...pv,
-                            battery_num: innerTexts ? innerTexts[21] ?? '' : '',
-                        } : pv
-                    })
-                })
-            })
-            return result.data
+                return { ...result.data, batteryNum: innerTexts ? innerTexts[21] ?? '' : '' }
+            } catch (error) {
+                return result.data
+            }
         }
         return null
     }
@@ -238,8 +241,8 @@ export default function CardNum() {
                                 handleStartPosition("")
                                 handleStartComplement('')
                             }} sx={{ flex: 1 }} />
-                        <FormLabel>品牌号</FormLabel>
-                        <Input name="carBrand" sx={{ flex: 1 }} />
+                        {/* <FormLabel>品牌号</FormLabel> */}
+                        {/* <Input name="carBrand" sx={{ flex: 1 }} /> */}
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <FormLabel>开始位置</FormLabel>
@@ -256,7 +259,7 @@ export default function CardNum() {
                         <Input required name="exhaustiveQuantity" sx={{ flex: 1 }} />
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                        <Button type="submit" >开始运行</Button>
+                        <Button type="submit" loading={loading}>开始运行</Button>
                         <Button>批量下载电池码</Button>
                         <p>当前数量： {cardInfoList.length}</p>
                     </Box>
