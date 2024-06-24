@@ -20,7 +20,7 @@ interface ValidBatteryListItem {
 }
 
 const columns: any = [
-    { key: 'value', label: '电池码' },
+    { key: 'value', label: '可使用电池码' },
 ]
 
 function VerifyBattery() {
@@ -48,7 +48,7 @@ function VerifyBattery() {
                     map.set(key, [batteryItem])
                 }
             }
-            
+
             setBatteryMap(map)
         }
 
@@ -75,32 +75,45 @@ function VerifyBattery() {
         console.log(batteryMap, 'batteryMap')
         console.log(carNumMap, 'carNumMap')
 
-        batteryMap.forEach((value, key) => {
+        batteryMap.forEach(async (value, key) => {
             if (carNumMap.has(key)) {
                 const keyItem = key.split('-')
                 const batteryType = keyItem[2]
 
                 if (batteryType === '铅酸') {
-                    verifyForQS([...value], carNumMap.get(key)!)
+                    const data = await verifyForQS([...value], carNumMap.get(key)!)
+                    await invoke('my_generate_excel_command', {
+                        tableData: {
+                            data,
+                            columns
+                        },
+                        folderNameString: '可绑电池码',
+                        xlsxFilePathString: '可绑电池码-铅酸'
+                    });
                 } else {
-                    verifyForLD([...value], carNumMap.get(key)!)
+                    const data = await verifyForLD([...value], carNumMap.get(key)!)
+                    await invoke('my_generate_excel_command', {
+                        tableData: {
+                            data,
+                            columns
+                        },
+                        folderNameString: '可绑电池码',
+                        xlsxFilePathString: '可绑电池码-非铅酸'
+                    });
                 }
             } else {
                 console.error('not has');
             }
         })
-        // await invoke('my_generate_excel_command', {
-        //     tableData: {
-        //         data: array,
-        //         columns
-        //     }
-        // });
+
     }
 
     const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
         // carNums 组成2维数组，四个为一组，最后一组不够的向前面的借
         const groupNum: number = 4
-        const resultList: string[][] = []
+        const resultList: string[] = []
+        const retryLimit = 10; // 设置最大重试次数
+        const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
 
         const dcbhurlList: string[][] = []
 
@@ -110,13 +123,13 @@ function VerifyBattery() {
         }
 
         while (dcbhurlList.length > 0) {
-            const batterys = dcbhurlList.shift()
-            if (!batterys) break
+            const dcbhurl = dcbhurlList.shift()
+            if (!dcbhurl) break
             const response = await fetch('/api/verifyBattery', {
                 method: 'POST',
                 body: JSON.stringify({
                     token,
-                    dcbhurl: batterys!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
+                    dcbhurl: dcbhurl!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
                     cjhurl: getCjhUrlByCarNums(carNums),
                 }),
                 headers: {
@@ -129,27 +142,38 @@ function VerifyBattery() {
             await delay(1000)
 
             if (result.code === 0) {
-                resultList.push(batterys)
-                setValidBattery(prev => [...prev, { value: batterys.join("|") }].filter((item, index) => {
+                resultList.push(...dcbhurl)
+                setValidBattery(prev => [...prev, ...dcbhurl.map(it=>({ value: it }))].filter((item, index) => {
                     const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
                     if (findIndex === -1) return true
                     return findIndex === index
                 }))
             } else if (result.msg === '操作频繁，请稍后再试') {
-                console.log('操作频繁，请稍后再试 batterys===>', batterys);
+                console.log('操作频繁，请稍后再试 batterys===>', dcbhurl.join("|"));
+                if (!retryCounts[dcbhurl.join("|")!]) {
+                    retryCounts[dcbhurl.join("|")!] = 0;
+                }
+                retryCounts[dcbhurl.join("|")!]++;
 
-                await delay(1000)
-                dcbhurlList.push(batterys!)
+                if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
+ 
+                    await delay(1000)
+                    dcbhurlList.push(dcbhurl!)
+                } else {
+                    console.log(`Battery ${dcbhurl} has reached the maximum retry limit.`);
+                }
+                console.log('操作频繁，请稍后再试 dcbhurl===>', dcbhurl);
+
             }
         }
 
-        return resultList
+        return Array.from(new Set(resultList)).map(it => ({ value: it }));
     }
 
     const verifyForLD = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
-        const resultList = []
+        const resultList: string[] = []
 
-        const retryLimit = 3; // 设置最大重试次数
+        const retryLimit = 10; // 设置最大重试次数
         const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
 
         while (batterys.length > 0) {
@@ -174,7 +198,7 @@ function VerifyBattery() {
             await delay(1000)
 
             if (result.code === 0) {
-                resultList.push(battery)
+                resultList.push(battery!)
                 setValidBattery(prev => [...prev, { value: battery! }].filter((item, index) => {
                     const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
                     if (findIndex === -1) return true
@@ -196,7 +220,7 @@ function VerifyBattery() {
             }
         }
 
-        return resultList
+        return Array.from(new Set(resultList)).map(it => ({ value: it }));
     }
 
     const getCjhUrlByCarNums = (numList: string[]) => {
