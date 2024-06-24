@@ -217,9 +217,9 @@ export default function CardNum() {
 
                 const nodes = doc.querySelectorAll(".i-tccc-t")
 
-                const innerTexts = Array.from(nodes).map(node => node.textContent);
+                const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it=>it && it?.includes('电池编号'));
 
-                return { ...result.data, batteryNum: innerTexts ? innerTexts[21] ?? '' : '' }
+                return { ...result.data, batteryNum: (innerTexts.join('、')) }
             } catch (error) {
                 return result.data
             }
@@ -260,7 +260,6 @@ export default function CardNum() {
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Button type="submit" loading={loading}>开始运行</Button>
-                        <Button>批量下载电池码</Button>
                         <p>当前数量： {cardInfoList.length}</p>
                     </Box>
                 </Stack>
