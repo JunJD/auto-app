@@ -15,11 +15,12 @@ import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
 
 const columns: any = [
     { key: 'value', label: '电池码' },
-    { key: 'battery_model', label: '电池型号' },
     { key: 'battery_type', label: '电池类型' },
     { key: 'bfn_or_oe', label: '电池品牌' },
+    { key: 'batteryCapacity', label: '电池容量' },
 ];
 export default function BatteryNo() {
+    const [loading, setLoading] = useState(false)
     const { token } = useContext(AuthContext);
     const { batteryList, setBatteryListItem } = useContext(InfoContext)
     const [isGarbled, setIsGarbled] = useState('1');
@@ -107,6 +108,7 @@ export default function BatteryNo() {
 
     async function onSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setLoading(true)
         const formData = new FormData(event.currentTarget);
 
         const batteryNo = formData.get('batteryNo') as string;
@@ -148,37 +150,39 @@ export default function BatteryNo() {
         const array = await Promise.all(list.map(async (item) => {
             const result = await getBatteryNoFetch(item)
             if (!result) return null
-            
+
             const {
                 dcxh,
                 dclx,
                 dcpp,
-                zwpp
+                dcrl
             } = result
-
+            console.log(result, 'result!')
             const current = {
                 value: item,
                 status: 'success',
                 battery_model: dcxh,
                 battery_type: dclx,
-                bfn_or_oe: dcpp
+                bfn_or_oe: dcpp,
+                batteryCapacity: dcrl
             }
-            
+
             setBatteryListItem((prev: BatteryListItem[]) => {
                 return [current, ...prev]
             })
             return current
         }))
-        invoke('find_battery_nums_by_ids', {
-            array: array.filter(Boolean).map(item => item!.value)
-        });
-
-        // await invoke('my_generate_excel_command', {
-        //     tableData: {
-        //         data: array,
-        //         columns
-        //     }
+        // await invoke('find_battery_nums_by_ids', {
+        //     array: array.filter(Boolean).map(item => item!.value)
         // });
+
+        await invoke('my_generate_excel_command', {
+            tableData: {
+                data: array,
+                columns
+            }
+        });
+        setLoading(false)
     }
 
 
@@ -190,8 +194,15 @@ export default function BatteryNo() {
         const result = await response.json()
 
         if (result.code === 0) {
-            console.log(result.data, 'result.data')
-            return result.data
+            const responseByNo = await fetch('/api/getBatteryInfoByNo', {
+                method: "POST",
+                body: JSON.stringify({ batteryNo: item }),
+            })
+            const { code } = await responseByNo.json()
+            if (code === 0) {
+                return result.data
+            }
+            return null
         }
         return null
     }
@@ -230,7 +241,8 @@ export default function BatteryNo() {
                         <Input required name="exhaustiveQuantity" sx={{ flex: 1 }} />
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                        <Button type="submit" >开始运行</Button>
+                        <Button type="submit" loading={loading}>开始运行</Button>
+                        <p>当前数量： {batteryList.length}</p>
                     </Box>
                 </Stack>
             </form>

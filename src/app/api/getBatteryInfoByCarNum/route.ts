@@ -9,5 +9,5 @@ export const POST = async function (req: Request) {
     
     const text = await response.text();
 
-    return NextResponse.json({ text, url: `https://www.pzcode.cn/pwb/${cardNum}` }, { status: 200 })
+    return NextResponse.json({ text, url: `https://www.pzcode.cn/vin/${cardNum}` }, { status: 200 })
 }

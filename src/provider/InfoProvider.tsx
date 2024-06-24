@@ -10,6 +10,8 @@ export interface CarListItem {
     battery_type?: string, // 电池类型
     bfn_or_oe?: string, // 电池品牌
     brand?: string //中文品牌
+    batteryCapacity: string, // 电池容量
+    
     // battery_num
     battery_num?: string, // 电池编号
 }
@@ -21,6 +23,7 @@ export interface BatteryListItem {
     battery_type?: string, // 电池类型 dclx
     bfn_or_oe?: string, // 电池品牌 // dcpp
     // dcrl 电池容量
+    batteryCapacity: string
 }
 
 export const InfoContext = createContext<

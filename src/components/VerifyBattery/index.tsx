@@ -30,65 +30,152 @@ function VerifyBattery() {
     const { cardInfoList, batteryList } = React.useContext(InfoContext)
 
     const [validBattery, setValidBattery] = React.useState<Array<ValidBatteryListItem>>([])
-    const verify = async (batterys = batteryNoListStr.split('\n').filter(Boolean), groupNum: number = 4) => {
-        // 对batteryList进行分组，4个为一组
-        // const batterys = batteryNoListStr.split('\n').filter(Boolean)
 
-        const dcbhurlList = []
+    const [batteryMap, setBatteryMap] = React.useState<Map<string, string[]>>(new Map())
+    const [carNumMap, setCarNumMap] = React.useState<Map<string, string[]>>(new Map())
+
+    React.useEffect(() => {
+        const splitBatteryArray = batteryNoListStr.split('\n').filter(Boolean)
+        if (splitBatteryArray.length > 0) {
+            setBatteryMap((prev) => {
+                for (const batteryItem of splitBatteryArray) {
+                    const findInfo = batteryList.find(item => item.value === batteryItem)
+                    const key = `${findInfo?.bfn_or_oe}-${findInfo?.batteryCapacity}-${findInfo?.battery_type}`
+                    if (prev.has(key)) {
+                        prev.get(key)?.push(batteryItem)
+                    } else {
+                        prev.set(key, [batteryItem])
+                    }
+                }
+                return prev
+            })
+        }
+
+    }, [batteryNoListStr])
+    React.useEffect(() => {
+        const splitCarNumArray = carNumListStr.split('\n').filter(Boolean)        
+        if (splitCarNumArray.length > 0) {
+            setCarNumMap((prev) => {
+                for (const CarNumItem of splitCarNumArray) {
+                    const findInfo = cardInfoList.find(item => item.value === CarNumItem)
+                    const key = `${findInfo?.bfn_or_oe}-${findInfo?.batteryCapacity}-${findInfo?.battery_type}`
+                    if (prev.has(key)) {
+                        prev.get(key)?.push(CarNumItem)
+                    } else {
+                        prev.set(key, [CarNumItem])
+                    }
+                }
+                return prev
+            })
+        }
+
+    }, [carNumListStr])
+
+    const verifyStart = async () => {
+        console.log(batteryMap, 'batteryMap')
+        console.log(carNumMap, 'carNumMap')
+
+        batteryMap.forEach((value, key) => {
+            if(carNumMap.has(key)) {
+                const keyItem = key.split('-')
+                const batteryType = keyItem[2]
+
+                if(batteryType==='铅酸') {
+                    verifyForQS(value, carNumMap.get(key)!)
+                } else {
+                    verifyForLD(value, carNumMap.get(key)!)
+                }
+            } else {
+                console.error('not has');
+            }
+        })
+        // await invoke('my_generate_excel_command', {
+        //     tableData: {
+        //         data: array,
+        //         columns
+        //     }
+        // });
+    }
+
+    const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
+        // carNums 组成2维数组，四个为一组，最后一组不够的向前面的借
+        const groupNum: number = 4
+        const resultList: string[][] = []
+        
+        const dcbhurlList: string[][] = []
 
         for (let i = 0; i < batterys.length; i += groupNum) {
             const group = batterys.slice(i, i + groupNum)
             dcbhurlList.push(group)
-            // dcbhurlList.push(group.join('|'))
         }
 
-        console.log(dcbhurlList, 'dcbhurlList');
-
-        const resultList = []
-        for (const dcbhurl of dcbhurlList) {
-            const resolve = new Promise(async (resolve) => {
-
-                const response = await fetch('/api/verifyBattery', {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        token,
-                        dcbhurl: dcbhurl.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
-                        cjhurl: getCjhUrl(),
-                    }),
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                const result = await response.json()
-
-                await delay(1000)
-
-                if (result.code === 0) {
-                    if (dcbhurl.length > 1) {
-                        console.log(dcbhurl, '<==dcbhurl');
-                        resolve(await verify(dcbhurl, 1))
-                    }
-                    resolve(dcbhurl.join('|'))
-                }
-                resolve('')
+        while (dcbhurlList.length > 0) {
+            const batterys = dcbhurlList.shift()
+            if(!batterys) break
+            const response = await fetch('/api/verifyBattery', {
+                method: 'POST',
+                body: JSON.stringify({
+                    token,
+                    dcbhurl: batterys!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
+                    cjhurl: getCjhUrlByCarNums(carNums),
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             })
-            resultList.push(await resolve)
-        }
-        const array = resultList.filter(Boolean).map(it => ({ value: it })) as Array<ValidBatteryListItem>
-        setValidBattery(array)
-        console.log(array, '<===resultList');
-        await invoke('my_generate_excel_command', {
-            tableData: {
-                data: array,
-                columns
+            
+            const result = await response.json()
+
+            await delay(1000)
+
+            if (result.code === 0) {
+                resultList.push(batterys)
+                setValidBattery(prev=>[...prev, { value: batterys.join("|") }])
+            } else if(result.msg==='操作频繁，请稍后再试') {
+                await delay(1000)
+                dcbhurlList.push(batterys!)
             }
-        });
+        }
+        
+        return resultList
     }
 
-    function getCjhUrl() {
-        const carNums = carNumListStr.split('\n').filter(Boolean)
+    const verifyForLD = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
+        const resultList = []
+        
+        while (batterys.length > 0) {
+            const battery = batterys.shift()
+            const response = await fetch('/api/verifyBattery', {
+                method: 'POST',
+                body: JSON.stringify({
+                    token,
+                    dcbhurl: `https://www.pzcode.cn/pwb/${battery}`,
+                    cjhurl: getCjhUrlByCarNums(carNums),
+                }),
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            const result = await response.json()
+
+            await delay(1000)
+            console.log(result.msg, 'result.msg');
+            
+            if (result.code === 0) {
+                resultList.push(battery)
+                setValidBattery(prev=>[...prev, { value: battery! }])
+            } else if(result.msg==='操作频繁，请稍后再试') {
+                await delay(1000)
+                batterys.push(battery!)
+            }
+        }
+
+        return resultList
+    }
+
+    const getCjhUrlByCarNums = (numList: string[]) => {
         // 随机取
-        const randomCarNum = carNums[Math.floor(Math.random() * carNums.length)]
+        const randomCarNum = numList[Math.floor(Math.random() * numList.length)]
         return `https://www.pzcode.cn/vin/${randomCarNum}`
     }
 
@@ -103,7 +190,6 @@ function VerifyBattery() {
     }, [batteryNoListStr])
 
     const autoSyncCarNum = async () => {
-        console.log(cardInfoList, 'cardInfoList')
         const str = cardInfoList.map(it => it.value).join('\n')
         setCarNumListStr(str)
     }
@@ -115,7 +201,12 @@ function VerifyBattery() {
 
     const importBatteryNo = async () => {
         const dataJson = await getFileText()
-        const text = (dataJson as Array<{ '电池码': string }>).map(it => it['电池码']).join('\n')
+        let text = ''
+        try {
+            text = (dataJson as Array<{ '电池码': string }>).map(it => it['电池码']).join('\n')
+        } catch (error) {
+
+        }
 
         setBatteryNoListStr(text)
     }
@@ -129,7 +220,7 @@ function VerifyBattery() {
             filters: [
                 {
                     name: 'txt',
-                    extensions: ['txt', 'xlsx'],
+                    extensions: ['xlsx'],
                 },
             ],
             multiple: false,
@@ -146,11 +237,10 @@ function VerifyBattery() {
         const jsonData = xlsx.utils.sheet_to_json(worksheet);
         console.log(jsonData); // 输出表格数据
         return jsonData
-
     }
 
     return (
-        <Stack spacing={2}>
+        <Stack spacing={2} sx={{ width: '100%', height: '100%', overflow: 'hidden' }}>
             <form>
                 <Stack direction="row" spacing={2}>
                     <FormControl sx={{ flex: '1' }}>
@@ -222,7 +312,7 @@ function VerifyBattery() {
                 sx={{
                     mt: 'var(--Card-paddingBlock)',
                 }}
-                onClick={() => verify()}
+                onClick={() => verifyStart()}
                 disabled={!carNumListStr || !batteryNoListStr}
                 fullWidth
                 color="primary"

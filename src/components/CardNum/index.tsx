@@ -11,18 +11,15 @@ import { incrementAlphaNumericString, incrementAlphaString, incrementNumberStrin
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
-import { InfoContext } from "@/provider/InfoProvider";
-interface ListItem {
-    value: string,
-    status: string,
-    battery_model?: string, //电池型号
-    battery_type?: string, // 电池类型
-    bfn_or_oe?: string, // 电池品牌
-    brand?: string //中文品牌
+import { CarListItem, InfoContext } from "@/provider/InfoProvider";
 
-    // battery_num
-    battery_num?: string, // 电池编号
-}
+const columns: any = [
+    { key: 'value', label: '车架号' },
+    { key: 'battery_num', label: '电池码' },
+    { key: 'battery_type', label: '电池类型' },
+    { key: 'bfn_or_oe', label: '电池品牌' },
+    { key: 'batteryCapacity', label: '电池容量' },
+];
 
 export default function CardNum() {
     const { token } = useContext(AuthContext);
@@ -32,7 +29,7 @@ export default function CardNum() {
     const [startPosition, setStartPosition] = useState("");
     const [carNumber, setCarNumber] = useState('');
 
-    
+
     // 083422211000801
 
     const handleStartPosition = (value: string) => {
@@ -155,13 +152,15 @@ export default function CardNum() {
         const array = await Promise.all(list.map(async (item) => {
             const result = await getCardNumFetch(item)
             if (!result) return null
-            
+
             const {
                 dcxh,
                 dclx,
                 dcpp,
-                zwpp
+                zwpp,
+                dcrl
             } = result
+            console.log(result, 'result');
 
             const current = {
                 value: item,
@@ -170,15 +169,22 @@ export default function CardNum() {
                 battery_type: dclx,
                 bfn_or_oe: dcpp,
                 brand: zwpp,
+                batteryCapacity: dcrl,
             }
-            
-            setCardInfoList((prev: ListItem[]) => {
+
+            setCardInfoList((prev: CarListItem[]) => {
                 return [...prev, current]
             })
             return current
         }))
-        invoke('find_valid_electro_car_by_ids', {
-            array: array.filter(Boolean).map(item => item!.value)
+        // invoke('find_valid_electro_car_by_ids', {
+        //     array: array.filter(Boolean).map(item => item!.value)
+        // });
+        await invoke('my_generate_excel_command', {
+            tableData: {
+                data: array,
+                columns
+            }
         });
     }
 
@@ -204,7 +210,7 @@ export default function CardNum() {
                 const nodes = doc.querySelectorAll(".i-tccc-t")
                 const innerTexts = Array.from(nodes).map(node => node.textContent);
 
-                setCardInfoList((prev: ListItem[]) => {
+                setCardInfoList((prev: CarListItem[]) => {
                     return prev.map(pv => {
                         return pv.value === item ? {
                             ...pv,
@@ -217,15 +223,6 @@ export default function CardNum() {
         }
         return null
     }
-
-    const columns: any = [
-        { key: 'value', label: '车架号' },
-        { key: 'battery_num', label: '电池码' },
-        { key: 'battery_model', label: '电池型号' },
-        { key: 'battery_type', label: '电池类型' },
-        { key: 'bfn_or_oe', label: '电池品牌' },
-        { key: 'brand', label: '中文品牌' },
-    ];
 
     return (
         <Stack spacing={2} height={'100%'}>
@@ -261,11 +258,12 @@ export default function CardNum() {
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Button type="submit" >开始运行</Button>
                         <Button>批量下载电池码</Button>
+                        <p>当前数量： {cardInfoList.length}</p>
                     </Box>
                 </Stack>
             </form>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <ListTable<ListItem> data={cardInfoList} columns={columns} />
+                <ListTable<CarListItem> data={cardInfoList} columns={columns} />
             </Box>
         </Stack>
     )
