@@ -4,7 +4,7 @@
     "beforeBuildCommand": "pnpm run build",
     "beforeDevCommand": "pnpm run dev",
     "devPath": "http://localhost:3000",
-    "distDir": "../out"
+    "distDir": "../dist"
   },
   "package": {
     "productName": "auto-app",
@@ -37,7 +37,7 @@
         "icons/icon.icns",
         "icons/icon.ico"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "com.dingjunjie.auto",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
