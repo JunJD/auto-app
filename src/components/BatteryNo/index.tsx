@@ -172,19 +172,18 @@ export default function BatteryNo() {
             })
             return current
         }))
-        // await invoke('find_battery_nums_by_ids', {
-        //     array: array.filter(Boolean).map(item => item!.value)
-        // });
 
-        await invoke('my_generate_excel_command', {
+        console.log(array, 'array')
+        invoke('my_generate_excel_command', {
             tableData: {
-                data: array,
+                data: array.filter(Boolean),
                 columns
             },
             folderNameString: '电池码',
             xlsxFilePathString: 'batteryNo'
-        });
-        setLoading(false)
+        }).finally(()=>{
+            setLoading(false)
+        })
     }
 
 

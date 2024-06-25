@@ -6,20 +6,21 @@ use std::sync::{Arc, Mutex};
 use image::Luma;
 use qrcode::QrCode;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use tokio::task::spawn_blocking;
 use xlsxwriter::format::FormatAlignment;
 use xlsxwriter::{Format, Workbook};
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Column {
-    key: String,
-    label: String,
+    pub key: String,
+    pub label: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ListTableProps<T> {
-    data: Vec<T>,
-    columns: Vec<Column>,
+    pub data: Vec<T>,
+    pub columns: Vec<Column>,
 }
 
 pub async fn write_txt(
@@ -68,7 +69,7 @@ pub async fn save_qr_code(
     .map_err(|e| format!("Task panicked: {:?}", e))?
 }
 
-pub async fn save_excel<T: serde::ser::Serialize + Send + 'static>(
+pub async fn save_excel<T: Serialize + Send + 'static>(
     table_data: ListTableProps<T>,
     file_lock: Arc<Mutex<()>>,
     path: PathBuf,
@@ -77,10 +78,10 @@ pub async fn save_excel<T: serde::ser::Serialize + Send + 'static>(
     spawn_blocking(move || {
         let _lock = file_lock.lock().unwrap();
 
-        let path_str = path.to_string_lossy().into_owned(); // 保存临时值
+        let path_str = path.to_string_lossy().into_owned();
 
-        let workbook =
-            Workbook::new(&path_str).map_err(|e| format!("Failed to create workbook: {}", e))?;
+        let workbook = Workbook::new(&path_str)
+            .map_err(|e| format!("Failed to create workbook: {}", e))?;
         let mut sheet = workbook
             .add_worksheet(Some("Sheet1"))
             .map_err(|e| format!("Failed to add worksheet: {}", e))?;
@@ -98,34 +99,41 @@ pub async fn save_excel<T: serde::ser::Serialize + Send + 'static>(
 
         // Write table data
         for (row_num, row) in table_data.data.iter().enumerate() {
-            // let row_value = serde_json::to_value(&row).unwrap(); // 绑定临时值
-            let row_value = serde_json::to_value(&row)
-                .map_err(|e| format!("Failed to serialize row: {}", e))?;
+            let row_value = match serde_json::to_value(&row) {
+                Ok(value) => value,
+                Err(e) => {
+                    println!("Failed to serialize row: {}. Skipping row.", e);
+                    continue;
+                }
+            };
             for (col_num, column) in table_data.columns.iter().enumerate() {
-                let cell_value = row_value.get(&column.key).ok_or_else(|| format!("Missing key in row: {}", column.key))?;
-                // let cell_value = row_value.get(&column.key).unwrap();
+                let cell_value = row_value.get(&column.key).unwrap_or(&Value::Null);
                 match cell_value {
-                    serde_json::Value::String(s) => sheet
-                        .write_string((row_num + 1) as u32, col_num as u16, s, None)
-                        .map_err(|e| format!("Failed to write cell: {}", e))?,
-                    // serde_json::Value::Number(n) => sheet.write_number((row_num + 1) as u32, col_num as u16, n.as_f64().unwrap(), None)
-                    //     .map_err(|e| format!("Failed to write cell: {}", e))?,
-                    serde_json::Value::Number(n) => n
-                        .as_f64()
-                        .ok_or_else(|| format!("Invalid number value: {}", n))
-                        .and_then(|f| {
-                            sheet
-                                .write_number((row_num + 1) as u32, col_num as u16, f, None)
-                                .map_err(|e| format!("Failed to write cell: {}", e))
-                        })?,
-                    _ => return Err(format!("Unsupported data type in cell: {:?}", cell_value)),
+                    Value::String(s) => {
+                        if let Err(e) = sheet.write_string((row_num + 1) as u32, col_num as u16, s, None) {
+                            println!("Failed to write cell: {}. Skipping cell.", e);
+                        }
+                    }
+                    Value::Number(n) => {
+                        if let Some(f) = n.as_f64() {
+                            if let Err(e) = sheet.write_number((row_num + 1) as u32, col_num as u16, f, None) {
+                                println!("Failed to write cell: {}. Skipping cell.", e);
+                            }
+                        } else {
+                            println!("Invalid number value: {}. Skipping cell.", n);
+                        }
+                    }
+                    Value::Null => {
+                        // Do nothing, leave the cell empty
+                    }
+                    _ => {
+                        println!("Unsupported data type in cell: {:?}. Skipping cell.", cell_value);
+                    }
                 }
             }
         }
 
-        workbook
-            .close()
-            .map_err(|e| format!("Failed to close workbook: {}", e))?;
+        workbook.close().map_err(|e| format!("Failed to close workbook: {}", e))?;
         Ok(path)
     })
     .await
