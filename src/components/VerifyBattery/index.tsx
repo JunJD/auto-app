@@ -30,7 +30,7 @@ function VerifyBattery() {
     const { cardInfoList, setCardInfoList, batteryList, setBatteryListItem } = React.useContext(InfoContext)
 
     const [validBattery, setValidBattery] = React.useState<Array<ValidBatteryListItem>>([])
-
+    const [loading, setLoading] = React.useState(false)
     const [batteryMap, setBatteryMap] = React.useState<Map<string, string[]>>(new Map())
     const [carNumMap, setCarNumMap] = React.useState<Map<string, string[]>>(new Map())
 
@@ -72,40 +72,49 @@ function VerifyBattery() {
     }, [carNumListStr])
 
     const verifyStart = async () => {
+        setLoading(true)
         console.log(batteryMap, 'batteryMap')
         console.log(carNumMap, 'carNumMap')
 
-        batteryMap.forEach(async (value, key) => {
-            if (carNumMap.has(key)) {
-                const keyItem = key.split('-')
-                const batteryType = keyItem[2]
+        const resolveList: Promise<any>[] = []
 
-                if (batteryType === '铅酸') {
-                    const data = await verifyForQS([...value], carNumMap.get(key)!)
-                    await invoke('my_generate_excel_command', {
-                        tableData: {
-                            data,
-                            columns
-                        },
-                        folderNameString: '可绑电池码',
-                        xlsxFilePathString: '可绑电池码-铅酸'
-                    });
+        batteryMap.forEach((value, key) => {
+            resolveList.push(new Promise(async (resolve) => {
+
+                if (carNumMap.has(key)) {
+                    const keyItem = key.split('-')
+                    const batteryType = keyItem[2]
+
+                    if (batteryType === '铅酸') {
+                        const data = await verifyForQS([...value], carNumMap.get(key)!)
+                        resolve(await invoke('my_generate_excel_command', {
+                            tableData: {
+                                data,
+                                columns
+                            },
+                            folderNameString: '可绑电池码',
+                            xlsxFilePathString: '可绑电池码-铅酸'
+                        }))
+                    } else {
+                        const data = await verifyForLD([...value], carNumMap.get(key)!)
+                        resolve(await invoke('my_generate_excel_command', {
+                            tableData: {
+                                data,
+                                columns
+                            },
+                            folderNameString: '可绑电池码',
+                            xlsxFilePathString: '可绑电池码-非铅酸'
+                        }));
+                    }
                 } else {
-                    const data = await verifyForLD([...value], carNumMap.get(key)!)
-                    await invoke('my_generate_excel_command', {
-                        tableData: {
-                            data,
-                            columns
-                        },
-                        folderNameString: '可绑电池码',
-                        xlsxFilePathString: '可绑电池码-非铅酸'
-                    });
+                    resolve(null)
+                    console.error('not has');
                 }
-            } else {
-                console.error('not has');
-            }
+            }))
         })
 
+         await Promise.all(resolveList)
+         setLoading(false)
     }
 
     const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
@@ -143,7 +152,7 @@ function VerifyBattery() {
 
             if (result.code === 0) {
                 resultList.push(...dcbhurl)
-                setValidBattery(prev => [...prev, ...dcbhurl.map(it=>({ value: it }))].filter((item, index) => {
+                setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it }))].filter((item, index) => {
                     const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
                     if (findIndex === -1) return true
                     return findIndex === index
@@ -156,7 +165,7 @@ function VerifyBattery() {
                 retryCounts[dcbhurl.join("|")!]++;
 
                 if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
- 
+
                     await delay(1000)
                     dcbhurlList.push(dcbhurl!)
                 } else {
@@ -390,6 +399,7 @@ function VerifyBattery() {
                     onClick={() => verifyStart()}
                     disabled={!carNumListStr || !batteryNoListStr}
                     color="primary"
+                    loading={loading}
                 >验证</Button>
             </Stack>
             <Box sx={{ flex: 1, overflow: 'auto' }}>

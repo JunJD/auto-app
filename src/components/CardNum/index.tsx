@@ -185,15 +185,16 @@ export default function CardNum() {
         //     array: array.filter(Boolean).map(item => item!.value)
         // });
 
-        await invoke('my_generate_excel_command', {
+        invoke('my_generate_excel_command', {
             tableData: {
                 data: array,
                 columns
             },
             folderNameString: 'carNum',
             xlsxFilePathString: 'carNum'
-        });
-        setLoading(false)
+        }).finally(()=>{
+            setLoading(false)
+        })
     }
 
 

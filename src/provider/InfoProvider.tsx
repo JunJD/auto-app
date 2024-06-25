@@ -96,9 +96,9 @@ export default function InfoProvider({
                 const list = _list.filter((item, index, arr) => {
                     return arr.findIndex(t => t.value === item.value) === index
                 })
+                console.log('去重复 list', list)
                 appStorage.setItem("batteryListItem", JSON.stringify(list))
                 return list
-
             })
 
         } else {

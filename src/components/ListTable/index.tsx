@@ -4,13 +4,13 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Table from '@mui/joy/Table';
 import useLazyLoad from '@/hooks/useLazyLoad';
 
-interface ListTableProps<T> {
+interface ListTableProps<T extends { value: string }> {
     data: T[];
     columns: Array<{ key: keyof T; label: string }>;
     fetchMoreData?: () => void;
 }
 
-const ListTable = <T,>({ data, columns, fetchMoreData }: ListTableProps<T>) => {
+const ListTable = <T extends { value: string },>({ data, columns, fetchMoreData }: ListTableProps<T>) => {
     const [displayData, setDisplayData] = useState(data.slice(0, 20)); // 初始显示数据
 
     useEffect(() => {
@@ -37,7 +37,7 @@ const ListTable = <T,>({ data, columns, fetchMoreData }: ListTableProps<T>) => {
                 {
                     displayData.map((item, index) => {
                         return (
-                            <tr key={index}>
+                            <tr key={item.value + "_" + index}>
                                 {columns.map((column, colIndex) => (
                                     <td key={colIndex}>{(item as any)[column.key]}</td>
                                 ))}
