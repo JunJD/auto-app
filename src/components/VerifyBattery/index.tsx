@@ -33,6 +33,7 @@ function VerifyBattery() {
     const [loading, setLoading] = React.useState(false)
     const [batteryMap, setBatteryMap] = React.useState<Map<string, string[]>>(new Map())
     const [carNumMap, setCarNumMap] = React.useState<Map<string, string[]>>(new Map())
+    const [errNum, setNumber] = React.useState(0);
 
     React.useEffect(() => {
         const splitBatteryArray = batteryNoListStr.split('\n').filter(Boolean)
@@ -113,8 +114,8 @@ function VerifyBattery() {
             }))
         })
 
-         await Promise.all(resolveList)
-         setLoading(false)
+        await Promise.all(resolveList)
+        setLoading(false)
     }
 
     const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[]) => {
@@ -133,7 +134,10 @@ function VerifyBattery() {
 
         while (dcbhurlList.length > 0) {
             const dcbhurl = dcbhurlList.shift()
-            if (!dcbhurl) break
+            if (!dcbhurl) {
+                setNumber(prev => prev + 1)
+                continue
+            }
             const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -169,9 +173,9 @@ function VerifyBattery() {
                     await delay(1000)
                     dcbhurlList.push(dcbhurl!)
                 } else {
+                    setNumber(prev => prev + 1)
                     console.log(`Battery ${dcbhurl} has reached the maximum retry limit.`);
                 }
-                console.log('操作频繁，请稍后再试 dcbhurl===>', dcbhurl);
 
             }
         }
@@ -189,6 +193,7 @@ function VerifyBattery() {
             const battery = batterys.shift()
             const redoBattery = validBattery.find(item => item.value === battery)
             if (redoBattery) {
+                setNumber(prev => prev + 1)
                 continue
             }
             const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
@@ -224,6 +229,7 @@ function VerifyBattery() {
                     await delay(1000);
                     batterys.push(battery!);
                 } else {
+                    setNumber(prev => prev + 1)
                     console.log(`Battery ${battery} has reached the maximum retry limit.`);
                 }
             }
@@ -327,7 +333,10 @@ function VerifyBattery() {
             <form>
                 <Stack direction="row" spacing={2}>
                     <FormControl sx={{ flex: '1' }}>
-                        <FormLabel>车架号</FormLabel>
+                        <FormLabel>
+                            车架号
+                            {`【${Array.from(carNumMap.keys())}】`}    
+                        </FormLabel>
                         <Textarea
                             placeholder="直接填写车架号或者导入车架号txt文件"
                             minRows={3}
@@ -357,7 +366,10 @@ function VerifyBattery() {
                         />
                     </FormControl>
                     <FormControl sx={{ flex: '1' }}>
-                        <FormLabel>电池码</FormLabel>
+                        <FormLabel>
+                            电池码
+                            {`【${Array.from(batteryMap.keys())}】`}
+                        </FormLabel>
                         <Textarea
                             placeholder="直接填写电池码或者导入电池码txt文件"
                             minRows={3}
@@ -401,6 +413,10 @@ function VerifyBattery() {
                     color="primary"
                     loading={loading}
                 >验证</Button>
+                <Stack spacing={10} direction='row'>
+                    <span>当前有效数量： {validBattery.length}</span>
+                    <span>当前无效数量： {errNum}</span>
+                </Stack>
             </Stack>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <ListTable<ValidBatteryListItem> data={validBattery} columns={columns} />

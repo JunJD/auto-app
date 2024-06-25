@@ -27,7 +27,7 @@ export default function BatteryNo() {
     const [startComplement, setStartComplement] = useState('0000');
     const [startPosition, setStartPosition] = useState("");
     const [batteryNo, setBatteryNo] = useState('');
-
+    const [errNum, setNumber] = useState(0);
 
     const handleStartPosition = (value: string) => {
         const num = +value
@@ -150,9 +150,12 @@ export default function BatteryNo() {
         const resolveList = []
 
         for (const item of list) {
-            
+
             const result = await getBatteryNoFetch(item)
-            if (!result) return null
+            if (!result) {
+                setNumber(prev => prev + 1)
+                continue
+            }
 
             const {
                 dcxh,
@@ -175,7 +178,7 @@ export default function BatteryNo() {
             })
             resolveList.push(current)
         }
-    
+
         invoke('my_generate_excel_command', {
             tableData: {
                 data: resolveList.filter(Boolean),
@@ -183,7 +186,7 @@ export default function BatteryNo() {
             },
             folderNameString: '电池码',
             xlsxFilePathString: 'batteryNo'
-        }).finally(()=>{
+        }).finally(() => {
             setLoading(false)
         })
     }
@@ -245,7 +248,10 @@ export default function BatteryNo() {
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Button type="submit" loading={loading}>开始运行</Button>
-                        <p>当前数量： {batteryList.length}</p>
+                        <Stack spacing={10} direction='row'>
+                            <span>当前有效数量： {batteryList.length}</span>
+                            <span>当前无效数量： {errNum}</span>
+                        </Stack>
                     </Box>
                 </Stack>
             </form>

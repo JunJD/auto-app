@@ -29,7 +29,8 @@ export default function CardNum() {
     const [startComplement, setStartComplement] = useState('0000');
     const [startPosition, setStartPosition] = useState("");
     const [carNumber, setCarNumber] = useState('');
-
+    const [errNum, setNumber] = useState(0);
+    // const errNum = useRef(0)
 
     // 083422211000801
 
@@ -154,7 +155,10 @@ export default function CardNum() {
         const resolveList = []
         for (const item of list) {
             const result = await getCardNumFetch(item)
-            if (!result) return null
+            if (!result) {
+                setNumber(prev => prev + 1)
+                continue
+            }
 
             const {
                 dcxh,
@@ -189,7 +193,7 @@ export default function CardNum() {
             },
             folderNameString: 'carNum',
             xlsxFilePathString: 'carNum'
-        }).finally(()=>{
+        }).finally(() => {
             setLoading(false)
         })
     }
@@ -215,7 +219,7 @@ export default function CardNum() {
 
                 const nodes = doc.querySelectorAll(".i-tccc-t")
 
-                const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it=>it && it?.includes('电池编号'));
+                const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it => it && it?.includes('电池编号'));
 
                 return { ...result.data, batteryNum: (innerTexts.join('、')) }
             } catch (error) {
@@ -258,7 +262,10 @@ export default function CardNum() {
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Button type="submit" loading={loading}>开始运行</Button>
-                        <p>当前数量： {cardInfoList.length}</p>
+                        <Stack spacing={10} direction='row'>
+                            <span>当前有效数量： {cardInfoList.length}</span>
+                            <span>当前无效数量： {errNum}</span>
+                        </Stack>
                     </Box>
                 </Stack>
             </form>
