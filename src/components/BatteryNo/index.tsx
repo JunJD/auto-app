@@ -147,7 +147,10 @@ export default function BatteryNo() {
         })
 
         setBatteryListItem([])
-        const array = await Promise.all(list.map(async (item) => {
+        const resolveList = []
+
+        for (const item of list) {
+            
             const result = await getBatteryNoFetch(item)
             if (!result) return null
 
@@ -170,13 +173,12 @@ export default function BatteryNo() {
             setBatteryListItem((prev: BatteryListItem[]) => {
                 return [current, ...prev]
             })
-            return current
-        }))
-
-        console.log(array, 'array')
+            resolveList.push(current)
+        }
+    
         invoke('my_generate_excel_command', {
             tableData: {
-                data: array.filter(Boolean),
+                data: resolveList.filter(Boolean),
                 columns
             },
             folderNameString: '电池码',

@@ -151,7 +151,8 @@ export default function CardNum() {
         })
 
         setCardInfoList([])
-        const array = await Promise.all(list.map(async (item) => {
+        const resolveList = []
+        for (const item of list) {
             const result = await getCardNumFetch(item)
             if (!result) return null
 
@@ -163,7 +164,6 @@ export default function CardNum() {
                 dcrl,
                 batteryNum
             } = result
-            console.log(result, 'result');
 
             const current = {
                 value: item,
@@ -179,15 +179,12 @@ export default function CardNum() {
             setCardInfoList((prev: CarListItem[]) => {
                 return [...prev, current]
             })
-            return current
-        }))
-        // invoke('find_valid_electro_car_by_ids', {
-        //     array: array.filter(Boolean).map(item => item!.value)
-        // });
+            resolveList.push(current)
+        }
 
         invoke('my_generate_excel_command', {
             tableData: {
-                data: array,
+                data: resolveList.filter(Boolean),
                 columns
             },
             folderNameString: 'carNum',
