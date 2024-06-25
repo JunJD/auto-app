@@ -134,7 +134,7 @@ function VerifyBattery() {
         while (dcbhurlList.length > 0) {
             const dcbhurl = dcbhurlList.shift()
             if (!dcbhurl) break
-            const response = await fetch('/api/verifyBattery', {
+            const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
                 method: 'POST',
                 body: JSON.stringify({
                     token,
@@ -191,7 +191,7 @@ function VerifyBattery() {
             if (redoBattery) {
                 continue
             }
-            const response = await fetch('/api/verifyBattery', {
+            const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
                 method: 'POST',
                 body: JSON.stringify({
                     token,

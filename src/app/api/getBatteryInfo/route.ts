@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 
 export const POST = async function (req: Request) {
+    if(req.method==="OPTIONS") {
+        return NextResponse.next()
+    }
     const { token, dcbhurl } = await req.json()
     const response = await fetch(`
     https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/dcinfoquery?token=${token}&dcbhurl=${dcbhurl}

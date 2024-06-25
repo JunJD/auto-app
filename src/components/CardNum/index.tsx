@@ -199,7 +199,7 @@ export default function CardNum() {
 
 
     async function getCardNumFetch(item: string) {
-        const response = await fetch('/api/getCarNum', {
+        const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getCarNum', {
             method: "POST",
             body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
         })
@@ -207,7 +207,7 @@ export default function CardNum() {
 
         if (result.code === 0) {
             try {
-                const batteryTextDomRes = await fetch('/api/getBatteryInfoByCarNum', {
+                const batteryTextDomRes = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfoByCarNum', {
                     method: "POST",
                     body: JSON.stringify({ cardNum: item }),
                 })

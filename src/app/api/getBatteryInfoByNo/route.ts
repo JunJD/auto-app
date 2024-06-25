@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 
 export const POST = async function (req: Request) {
+    if(req.method==="OPTIONS") {
+        return NextResponse.next()
+    }
     const { batteryNo } = await req.json()
 
     const response = await fetch(`https://www.pzcode.cn/pwb/${batteryNo}`, {
