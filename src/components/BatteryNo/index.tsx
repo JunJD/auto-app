@@ -211,12 +211,20 @@ export default function BatteryNo() {
         const result = await response.json()
 
         if (result.code === 0) {
-            const responseByNo = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfoByNo', {
-                method: "POST",
-                body: JSON.stringify({ batteryNo: item }),
+
+            const response = await fetch(`https://www.pzcode.cn/pwb/${item}`, {
+                redirect: 'follow',
+                // 超时时间
             })
-            const { code } = await responseByNo.json()
-            if (code === 0) {
+
+            const text = await response.text();
+            const 销售单位未入库 = text.includes('销售单位未入库')
+            const 车辆制造商 = text.includes('车辆制造商')
+
+            console.table({ 销售单位未入库, 车辆制造商 });
+
+
+            if (销售单位未入库 && !车辆制造商) {
                 return result.data
             }
             return null
