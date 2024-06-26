@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server"
 
+export const config = {
+    maxDuration: 25,
+};
+
 export const POST = async function (req: Request) {
     try {
 
