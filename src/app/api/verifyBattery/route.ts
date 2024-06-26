@@ -1,23 +1,28 @@
 import { NextResponse } from "next/server"
 
 export const POST = async function (req: Request) {
-    if(req.method==="OPTIONS") {
-        return NextResponse.next()
-    }
-    const { token, dcbhurl, cjhurl } = await req.json()
+    try {
 
-    const response = await fetch(`
+        if (req.method === "OPTIONS") {
+            return NextResponse.next()
+        }
+        const { token, dcbhurl, cjhurl } = await req.json()
+
+        const response = await fetch(`
     https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/checkCjhDc?city=0573&token=${token}&cjhurl=${cjhurl}&dcbhurl=${dcbhurl}
     `, {
-        method: "GET",
-        headers: {
-            authority: 'jgjfjdcgl.gat.zj.gov.cn:5102',
-            scheme: 'https',
-            'accept-encoding': 'gzip',
-            'user-agent': "okhttp/4.9.3"
-        }
-    })
-    const data = await response.json()
+            method: "GET",
+            headers: {
+                authority: 'jgjfjdcgl.gat.zj.gov.cn:5102',
+                scheme: 'https',
+                'accept-encoding': 'gzip',
+                'user-agent': "okhttp/4.9.3"
+            }
+        })
+        const data = await response.json()
 
-    return NextResponse.json({ ...data, url: `/checkCjhDc?dcbhurl=${dcbhurl}&city=0573&token=${token}&cjhurl=${cjhurl}` }, { status: 200 })
+        return NextResponse.json({ ...data, url: `/checkCjhDc?dcbhurl=${dcbhurl}&city=0573&token=${token}&cjhurl=${cjhurl}` }, { status: 200 })
+    } catch (error) {
+        return NextResponse.json({ code: 1 }, { status: 200 })
+    }
 }
