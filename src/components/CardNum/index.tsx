@@ -156,43 +156,46 @@ export default function CardNum() {
         const resolveList: Promise<any>[] = []
         for (const item of list) {
             resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
+                try {
+                    const result = await getCardNumFetch(item)
+                    if (!result) {
+                        setNumber(prev => prev + 1)
+                        resolve(null)
+                        return
+                    }
 
-                const result = await getCardNumFetch(item)
-                if (!result) {
-                    setNumber(prev => prev + 1)
+                    const {
+                        dcxh,
+                        dclx,
+                        dcpp,
+                        zwpp,
+                        dcrl,
+                        batteryNum
+                    } = result
+
+                    const current = {
+                        value: item,
+                        status: 'success',
+                        // batteryModel: dcxh,
+                        battery_type: dclx,
+                        bfn_or_oe: dcpp,
+                        brand: zwpp,
+                        batteryCapacity: dcrl,
+                        batteryNum: batteryNum,
+                    }
+
+                    setCardInfoList((prev: CarListItem[]) => {
+                        return [...prev, current]
+                    })
+                    resolve(current)
+                } catch (error) {
                     resolve(null)
-                    return
                 }
-
-                const {
-                    dcxh,
-                    dclx,
-                    dcpp,
-                    zwpp,
-                    dcrl,
-                    batteryNum
-                } = result
-
-                const current = {
-                    value: item,
-                    status: 'success',
-                    // batteryModel: dcxh,
-                    battery_type: dclx,
-                    bfn_or_oe: dcpp,
-                    brand: zwpp,
-                    batteryCapacity: dcrl,
-                    batteryNum: batteryNum,
-                }
-
-                setCardInfoList((prev: CarListItem[]) => {
-                    return [...prev, current]
-                })
-                resolve(current)
             }))
         }
 
         const data = await Promise.all(resolveList)
-        
+
         invoke('my_generate_excel_command', {
             tableData: {
                 data: data.filter(Boolean),

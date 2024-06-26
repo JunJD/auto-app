@@ -153,38 +153,43 @@ export default function BatteryNo() {
 
         for (const item of list) {
             resolveList.push(new Promise(async (resolve) => {
-                const result = await getBatteryNoFetch(item)
-                if (!result) {
-                    setNumber(prev => prev + 1)
+                try {
+
+                    const result = await getBatteryNoFetch(item)
+                    if (!result) {
+                        setNumber(prev => prev + 1)
+                        resolve(null)
+                        return
+                    }
+
+                    const {
+                        dcxh,
+                        dclx,
+                        dcpp,
+                        dcrl
+                    } = result
+
+                    const current = {
+                        value: item,
+                        status: 'success',
+                        battery_model: dcxh,
+                        battery_type: dclx,
+                        bfn_or_oe: dcpp,
+                        batteryCapacity: dcrl
+                    }
+
+                    setBatteryListItem((prev: BatteryListItem[]) => {
+                        return [current, ...prev]
+                    })
+                    resolve(current)
+                } catch (error) {
                     resolve(null)
-                    return
                 }
-
-                const {
-                    dcxh,
-                    dclx,
-                    dcpp,
-                    dcrl
-                } = result
-
-                const current = {
-                    value: item,
-                    status: 'success',
-                    battery_model: dcxh,
-                    battery_type: dclx,
-                    bfn_or_oe: dcpp,
-                    batteryCapacity: dcrl
-                }
-
-                setBatteryListItem((prev: BatteryListItem[]) => {
-                    return [current, ...prev]
-                })
-                resolve(current)
             }))
         }
 
         const data = await Promise.all(resolveList)
-        
+
         invoke('my_generate_excel_command', {
             tableData: {
                 data: data.filter(Boolean),

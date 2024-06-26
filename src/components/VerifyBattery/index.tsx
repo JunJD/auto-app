@@ -134,50 +134,55 @@ function VerifyBattery() {
         }
 
         while (dcbhurlList.length > 0) {
-            const dcbhurl = dcbhurlList.shift()
-            if (!dcbhurl) {
-                setNumber(prev => prev + 1)
-                continue
-            }
-            const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
-                method: 'POST',
-                body: JSON.stringify({
-                    token,
-                    dcbhurl: dcbhurl!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
-                    cjhurl: getCjhUrlByCarNums(carNums),
-                }),
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
+            try {
 
-            const result = await response.json()
-
-            await delay(1000)
-
-            if (result.code === 0) {
-                resultList.push(...dcbhurl)
-                setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it }))].filter((item, index) => {
-                    const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
-                    if (findIndex === -1) return true
-                    return findIndex === index
-                }))
-            } else if (result.msg === '操作频繁，请稍后再试') {
-                console.log('操作频繁，请稍后再试 batterys===>', dcbhurl.join("|"));
-                if (!retryCounts[dcbhurl.join("|")!]) {
-                    retryCounts[dcbhurl.join("|")!] = 0;
-                }
-                retryCounts[dcbhurl.join("|")!]++;
-
-                if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
-
-                    await delay(1000)
-                    dcbhurlList.push(dcbhurl!)
-                } else {
+                const dcbhurl = dcbhurlList.shift()
+                if (!dcbhurl) {
                     setNumber(prev => prev + 1)
-                    console.log(`Battery ${dcbhurl} has reached the maximum retry limit.`);
+                    continue
                 }
+                const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token,
+                        dcbhurl: dcbhurl!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
+                        cjhurl: getCjhUrlByCarNums(carNums),
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
 
+                const result = await response.json()
+
+                await delay(1000)
+
+                if (result.code === 0) {
+                    resultList.push(...dcbhurl)
+                    setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it }))].filter((item, index) => {
+                        const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
+                        if (findIndex === -1) return true
+                        return findIndex === index
+                    }))
+                } else if (result.msg === '操作频繁，请稍后再试') {
+                    console.log('操作频繁，请稍后再试 batterys===>', dcbhurl.join("|"));
+                    if (!retryCounts[dcbhurl.join("|")!]) {
+                        retryCounts[dcbhurl.join("|")!] = 0;
+                    }
+                    retryCounts[dcbhurl.join("|")!]++;
+
+                    if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
+
+                        await delay(1000)
+                        dcbhurlList.push(dcbhurl!)
+                    } else {
+                        setNumber(prev => prev + 1)
+                        console.log(`Battery ${dcbhurl} has reached the maximum retry limit.`);
+                    }
+
+                }
+            } catch (error) {
+                continue
             }
         }
 
@@ -191,48 +196,53 @@ function VerifyBattery() {
         const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
 
         while (batterys.length > 0) {
-            const battery = batterys.shift()
-            const redoBattery = validBattery.find(item => item.value === battery)
-            if (redoBattery) {
-                setNumber(prev => prev + 1)
-                continue
-            }
-            const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
-                method: 'POST',
-                body: JSON.stringify({
-                    token,
-                    dcbhurl: `https://www.pzcode.cn/pwb/${battery}`,
-                    cjhurl: getCjhUrlByCarNums(carNums),
-                }),
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-            const result = await response.json()
+            try {
 
-            await delay(1000)
-
-            if (result.code === 0) {
-                resultList.push(battery!)
-                setValidBattery(prev => [...prev, { value: battery! }].filter((item, index) => {
-                    const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
-                    if (findIndex === -1) return true
-                    return findIndex === index
-                }))
-            } else if (result.msg === '操作频繁，请稍后再试') {
-                console.log('操作频繁，请稍后再试 batterys===>', battery);
-                if (!retryCounts[battery!]) {
-                    retryCounts[battery!] = 0;
-                }
-                retryCounts[battery!]++;
-
-                if (retryCounts[battery!] < retryLimit) {
-                    await delay(1000);
-                    batterys.push(battery!);
-                } else {
+                const battery = batterys.shift()
+                const redoBattery = validBattery.find(item => item.value === battery)
+                if (redoBattery) {
                     setNumber(prev => prev + 1)
-                    console.log(`Battery ${battery} has reached the maximum retry limit.`);
+                    continue
                 }
+                const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        token,
+                        dcbhurl: `https://www.pzcode.cn/pwb/${battery}`,
+                        cjhurl: getCjhUrlByCarNums(carNums),
+                    }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                const result = await response.json()
+
+                await delay(1000)
+
+                if (result.code === 0) {
+                    resultList.push(battery!)
+                    setValidBattery(prev => [...prev, { value: battery! }].filter((item, index) => {
+                        const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
+                        if (findIndex === -1) return true
+                        return findIndex === index
+                    }))
+                } else if (result.msg === '操作频繁，请稍后再试') {
+                    console.log('操作频繁，请稍后再试 batterys===>', battery);
+                    if (!retryCounts[battery!]) {
+                        retryCounts[battery!] = 0;
+                    }
+                    retryCounts[battery!]++;
+
+                    if (retryCounts[battery!] < retryLimit) {
+                        await delay(1000);
+                        batterys.push(battery!);
+                    } else {
+                        setNumber(prev => prev + 1)
+                        console.log(`Battery ${battery} has reached the maximum retry limit.`);
+                    }
+                }
+            } catch (error) {
+                continue
             }
         }
 
@@ -336,7 +346,7 @@ function VerifyBattery() {
                     <FormControl sx={{ flex: '1' }}>
                         <FormLabel>
                             车架号
-                            {`【${Array.from(carNumMap.keys())}】`}    
+                            {`【${Array.from(carNumMap.keys())}】`}
                         </FormLabel>
                         <Textarea
                             placeholder="直接填写车架号或者导入车架号txt文件"
