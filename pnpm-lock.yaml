@@ -26,9 +26,6 @@ dependencies:
   '@types/xmldom':
     specifier: ^0.1.34
     version: 0.1.34
-  api:
-    specifier: link:@types/@tauri/api
-    version: link:@types/@tauri/api
   cheerio:
     specifier: 1.0.0-rc.12
     version: 1.0.0-rc.12
