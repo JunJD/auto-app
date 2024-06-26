@@ -29,7 +29,7 @@ export default function BatteryNo() {
     const [startPosition, setStartPosition] = useState("");
     const [batteryNo, setBatteryNo] = useState('');
     const [errNum, setNumber] = useState(0);
-    const cacheData = useRef<BatteryListItem[]>(batteryList);
+    const cacheData = useRef<BatteryListItem[]>([]);
     const pause = () => {
         pauseFetchQueue()
         invoke('my_generate_excel_command', {

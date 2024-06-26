@@ -2,14 +2,12 @@ export class FetchQueue {
     private maxConcurrent: number;
     private queue: Array<{ fetchPromise: (controller: AbortController) => Promise<Response>, resolve: (value: Response | PromiseLike<Response>) => void, reject: (reason?: any) => void, controller: AbortController }>;
     private activeRequests: number;
-    private paused: boolean;
     private activeControllers: Set<AbortController>;
 
     constructor(maxConcurrent: number = 5) {
         this.maxConcurrent = maxConcurrent;
         this.queue = [];
         this.activeRequests = 0;
-        this.paused = false;
         this.activeControllers = new Set();
     }
 
@@ -23,7 +21,7 @@ export class FetchQueue {
     }
 
     private processQueue(): void {
-        if (this.paused || this.activeRequests >= this.maxConcurrent || this.queue.length === 0) {
+        if (this.activeRequests >= this.maxConcurrent || this.queue.length === 0) {
             return;
         }
         const { fetchPromise, resolve, reject, controller } = this.queue.shift()!;
@@ -48,7 +46,6 @@ export class FetchQueue {
 
     // 添加 pause 方法
     pause(): void {
-        this.paused = true;
         this.queue.forEach(({ controller }) => controller.abort());
         this.queue = [];
         this.activeControllers.forEach(controller => controller.abort());

@@ -187,8 +187,10 @@ async fn my_generate_qrcode_command(
         
         let cell_value = row_value.get("value").unwrap_or(&Value::Null);
 
+        let cell_value_str = cell_value.as_str().unwrap_or("").replace("\"", "");
+
         let url = row_value.get("url").unwrap_or(&Value::Null);
-        let qr_code_path = qr_folder_path.join(format!("电池码--{}--{}.png", cell_value, row_num));
+        let qr_code_path = qr_folder_path.join(format!("{}_电池码__{}.png", row_num, &cell_value_str));
 
         let url_string = url.as_str().unwrap_or("").to_string();
         let cell_value_string = cell_value.as_str().unwrap_or("").to_string();

@@ -31,10 +31,9 @@ export default function CardNum() {
     const [startPosition, setStartPosition] = useState("");
     const [carNumber, setCarNumber] = useState('');
     const [errNum, setNumber] = useState(0);
-    const cacheData = useRef<CarListItem[]>(cardInfoList);
-    const pauseRef = useRef(false);
+    const cacheData = useRef<CarListItem[]>([]);
+
     const pause = () => {
-        pauseRef.current = true;
         pauseFetchQueue();
         setTimeout(() => {
             invoke('my_generate_excel_command', {
@@ -172,10 +171,7 @@ export default function CardNum() {
         const resolveList: Promise<CarListItem | null>[] = []
         for (const item of list) {
             resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
-                if(pauseRef.current){
-                    resolve(null)
-                    return
-                }
+
                 try {
                     const result = await getCardNumFetch(item)
                     console.log(result, 'result');
@@ -217,7 +213,7 @@ export default function CardNum() {
             }))
         }
 
-        cacheData.current = (await Promise.all(resolveList)).filter(Boolean) as CarListItem[]
+        await Promise.all(resolveList)
 
         invoke('my_generate_excel_command', {
             tableData: {

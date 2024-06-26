@@ -38,7 +38,7 @@ function VerifyBattery() {
     const [carNumMap, setCarNumMap] = React.useState<Map<string, string[]>>(new Map())
     const [errNum, setNumber] = React.useState(0);
     const [errMapping, setErrMapping] = React.useState(0);
-    const cacheData = React.useRef<ValidBatteryListItem[]>(validBattery);
+    const cacheData = React.useRef<ValidBatteryListItem[]>([]);
     // const cacheData2 = React.useRef<ValidBatteryListItem[]>(validBattery);
     const pauseRef = React.useRef(false);
     const pause = () => {
@@ -60,7 +60,7 @@ function VerifyBattery() {
                         columns
                     },
                     folderNameString: '可绑电池码',
-                }).finally(()=>{
+                }).finally(() => {
                     setLoading(false)
                 })
             })
@@ -74,7 +74,7 @@ function VerifyBattery() {
             const map = new Map()
             for (const batteryItem of splitBatteryArray) {
                 const findInfo = batteryList.find(item => item.value === batteryItem)
-                const key = `${findInfo?.bfn_or_oe??'未知'}-${findInfo?.batteryCapacity??'未知'}-${findInfo?.battery_type??'未知'}`
+                const key = `${findInfo?.bfn_or_oe ?? '未知'}-${findInfo?.batteryCapacity ?? '未知'}-${findInfo?.battery_type ?? '未知'}`
                 if (map.has(key)) {
                     map.get(key)?.push(batteryItem)
                 } else {
@@ -92,7 +92,7 @@ function VerifyBattery() {
             const map = new Map()
             for (const CarNumItem of splitCarNumArray) {
                 const findInfo = cardInfoList.find(item => item.value === CarNumItem)
-                const key = `${findInfo?.bfn_or_oe??'未知'}-${findInfo?.batteryCapacity??'未知'}-${findInfo?.battery_type??'未知'}`
+                const key = `${findInfo?.bfn_or_oe ?? '未知'}-${findInfo?.batteryCapacity ?? '未知'}-${findInfo?.battery_type ?? '未知'}`
                 if (map.has(key)) {
                     map.get(key)?.push(CarNumItem)
                 } else {
@@ -156,7 +156,7 @@ function VerifyBattery() {
                     columns
                 },
                 folderNameString: '可绑电池码',
-            }).finally(()=>{
+            }).finally(() => {
                 setLoading(false)
             })
         })
@@ -177,6 +177,10 @@ function VerifyBattery() {
         }
 
         while (dcbhurlList.length > 0) {
+            if (pauseRef.current) {
+                pauseRef.current = false
+                break
+            }
             try {
 
                 const dcbhurl = dcbhurlList.shift()
@@ -239,6 +243,10 @@ function VerifyBattery() {
         const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
 
         while (batterys.length > 0) {
+            if (pauseRef.current) {
+                pauseRef.current = false
+                break
+            }
             try {
 
                 const battery = batterys.shift()
