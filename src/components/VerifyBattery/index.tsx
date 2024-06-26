@@ -52,7 +52,16 @@ function VerifyBattery() {
                 folderNameString: '可绑电池码',
                 xlsxFilePathString: '可绑电池码-非铅酸'
             }).finally(async () => {
-                setLoading(false)
+                // 开始打印qrcode
+                await invoke('my_generate_qrcode_command', {
+                    tableData: {
+                        data: cacheData.current,
+                        columns
+                    },
+                    folderNameString: '可绑电池码',
+                }).finally(()=>{
+                    setLoading(false)
+                })
             })
         }, 1000);
     }
@@ -137,8 +146,17 @@ function VerifyBattery() {
             },
             folderNameString: '可绑电池码',
             xlsxFilePathString: '可绑电池码'
+        }).finally(async () => {
+            await invoke('my_generate_qrcode_command', {
+                tableData: {
+                    data: cacheData.current,
+                    columns
+                },
+                folderNameString: '可绑电池码',
+            }).finally(()=>{
+                setLoading(false)
+            })
         })
-        setLoading(false)
     }
 
     const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[], key: string) => {
