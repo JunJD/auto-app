@@ -37,6 +37,7 @@ function VerifyBattery() {
     const [batteryMap, setBatteryMap] = React.useState<Map<string, string[]>>(new Map())
     const [carNumMap, setCarNumMap] = React.useState<Map<string, string[]>>(new Map())
     const [errNum, setNumber] = React.useState(0);
+    const [errMapping, setErrMapping] = React.useState(0);
     const cacheData = React.useRef<ValidBatteryListItem[]>(validBattery);
     // const cacheData2 = React.useRef<ValidBatteryListItem[]>(validBattery);
     const pauseRef = React.useRef(false);
@@ -105,6 +106,7 @@ function VerifyBattery() {
 
     const verifyStart = async () => {
         setNumber(0)
+        setErrMapping(0)
         setLoading(true)
         console.log(batteryMap, 'batteryMap')
         console.log(carNumMap, 'carNumMap')
@@ -132,6 +134,7 @@ function VerifyBattery() {
                         }
                     }
                 } else {
+                    setErrMapping(prev => prev + value.length)
                     resolve(null)
                     console.error('not has');
                 }
@@ -468,6 +471,7 @@ function VerifyBattery() {
                 <Stack spacing={10} direction='row'>
                     <span>当前有效数量： {validBattery.length}</span>
                     <span>当前无效数量： {errNum}</span>
+                    <span>当前未匹配数量： {errMapping}</span>
                 </Stack>
             </Stack>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
