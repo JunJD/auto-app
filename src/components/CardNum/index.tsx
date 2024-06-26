@@ -6,13 +6,14 @@ import Select from "@mui/joy/Select";
 import Option from '@mui/joy/Option';
 import Stack from "@mui/joy/Stack";
 import FormLabel from '@mui/joy/FormLabel';
-import { FormEvent, useContext, useState } from "react";
+import { FormEvent, useContext, useRef, useState } from "react";
 import { incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { CarListItem, InfoContext } from "@/provider/InfoProvider";
-import { customFetch as fetch } from '@/utils/FetchQueue';
+import { pauseFetchQueue, customFetch as fetch } from '@/utils/FetchQueue';
+
 const columns: any = [
     { key: 'value', label: '车架号' },
     { key: 'batteryNum', label: '电池码' },
@@ -30,9 +31,24 @@ export default function CardNum() {
     const [startPosition, setStartPosition] = useState("");
     const [carNumber, setCarNumber] = useState('');
     const [errNum, setNumber] = useState(0);
-    // const errNum = useRef(0)
-
-    // 083422211000801
+    const cacheData = useRef<CarListItem[]>(cardInfoList);
+    const pauseRef = useRef(false);
+    const pause = () => {
+        pauseRef.current = true;
+        pauseFetchQueue();
+        setTimeout(() => {
+            invoke('my_generate_excel_command', {
+                tableData: {
+                    data: cacheData.current,
+                    columns
+                },
+                folderNameString: '车架号',
+                xlsxFilePathString: '车架号'
+            }).finally(() => {
+                setLoading(false)
+            })
+        }, 1000);
+    }
 
     const handleStartPosition = (value: string) => {
         const num = +value
@@ -153,11 +169,17 @@ export default function CardNum() {
         })
 
         setCardInfoList([])
-        const resolveList: Promise<any>[] = []
+        const resolveList: Promise<CarListItem | null>[] = []
         for (const item of list) {
             resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
+                if(pauseRef.current){
+                    resolve(null)
+                    return
+                }
                 try {
                     const result = await getCardNumFetch(item)
+                    console.log(result, 'result');
+
                     if (!result) {
                         setNumber(prev => prev + 1)
                         resolve(null)
@@ -187,6 +209,7 @@ export default function CardNum() {
                     setCardInfoList((prev: CarListItem[]) => {
                         return [...prev, current]
                     })
+                    cacheData.current.push(current)
                     resolve(current)
                 } catch (error) {
                     resolve(null)
@@ -194,15 +217,15 @@ export default function CardNum() {
             }))
         }
 
-        const data = await Promise.all(resolveList)
+        cacheData.current = (await Promise.all(resolveList)).filter(Boolean) as CarListItem[]
 
         invoke('my_generate_excel_command', {
             tableData: {
-                data: data.filter(Boolean),
+                data: cacheData.current,
                 columns
             },
-            folderNameString: 'carNum',
-            xlsxFilePathString: 'carNum'
+            folderNameString: '车架号',
+            xlsxFilePathString: '车架号'
         }).finally(() => {
             setLoading(false)
         })
@@ -272,6 +295,7 @@ export default function CardNum() {
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Button type="submit" loading={loading}>开始运行</Button>
+                        <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
                         <Stack spacing={10} direction='row'>
                             <span>当前有效数量： {cardInfoList.length}</span>
                             <span>当前无效数量： {errNum}</span>

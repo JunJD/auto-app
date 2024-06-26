@@ -120,7 +120,7 @@ async fn my_generate_excel_command(
     
     let file_lock = Arc::new(Mutex::new(()));
 
-    let time = Local::now().format("%Y-%m-%d_%H:%M:%S").to_string();
+    let time = Local::now().format("%Y-%m-%d_%H_%M_%S").to_string();
     
     // Attempt to find the desktop directory
     let desktop_dir = match dirs::desktop_dir() {

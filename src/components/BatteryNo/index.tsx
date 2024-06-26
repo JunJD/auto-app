@@ -6,13 +6,13 @@ import Select from "@mui/joy/Select";
 import Option from '@mui/joy/Option';
 import Stack from "@mui/joy/Stack";
 import FormLabel from '@mui/joy/FormLabel';
-import { FormEvent, useContext, useState } from "react";
+import { FormEvent, useContext, useRef, useState } from "react";
 import { incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
-import { customFetch as fetch } from '@/utils/FetchQueue';
+import { pauseFetchQueue, customFetch as fetch } from '@/utils/FetchQueue';
 
 const columns: any = [
     { key: 'value', label: '电池码' },
@@ -29,7 +29,20 @@ export default function BatteryNo() {
     const [startPosition, setStartPosition] = useState("");
     const [batteryNo, setBatteryNo] = useState('');
     const [errNum, setNumber] = useState(0);
-
+    const cacheData = useRef<BatteryListItem[]>(batteryList);
+    const pause = () => {
+        pauseFetchQueue()
+        invoke('my_generate_excel_command', {
+            tableData: {
+                data: cacheData.current,
+                columns
+            },
+            folderNameString: '电池码',
+            xlsxFilePathString: '电池码'
+        }).finally(() => {
+            setLoading(false)
+        })
+    }
     const handleStartPosition = (value: string) => {
         const num = +value
         // 非数字
@@ -149,7 +162,7 @@ export default function BatteryNo() {
         })
 
         setBatteryListItem([])
-        const resolveList = []
+        const resolveList: Promise<BatteryListItem | null>[] = []
 
         for (const item of list) {
             resolveList.push(new Promise(async (resolve) => {
@@ -181,6 +194,7 @@ export default function BatteryNo() {
                     setBatteryListItem((prev: BatteryListItem[]) => {
                         return [current, ...prev]
                     })
+                    cacheData.current.push(current)
                     resolve(current)
                 } catch (error) {
                     resolve(null)
@@ -188,11 +202,11 @@ export default function BatteryNo() {
             }))
         }
 
-        const data = await Promise.all(resolveList)
+        cacheData.current = (await Promise.all(resolveList)).filter(Boolean) as BatteryListItem[]
 
         invoke('my_generate_excel_command', {
             tableData: {
-                data: data.filter(Boolean),
+                data: cacheData.current,
                 columns
             },
             folderNameString: '电池码',
@@ -267,6 +281,7 @@ export default function BatteryNo() {
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <Button type="submit" loading={loading}>开始运行</Button>
+                        <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
                         <Stack spacing={10} direction='row'>
                             <span>当前有效数量： {batteryList.length}</span>
                             <span>当前无效数量： {errNum}</span>
