@@ -215,11 +215,12 @@ export default function CardNum() {
 
         if (result.code === 0) {
             try {
-                const response = await fetch(`https://www.pzcode.cn/vin/${item}`, {
-                    redirect: 'follow'
-                })
 
-                const text = await response.text();
+                const batteryTextDomRes = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfoByCarNum', {
+                    method: "POST",
+                    body: JSON.stringify({ cardNum: item }),
+                })
+                const { text } = await batteryTextDomRes.json()
 
                 let domParser = new DOMParser();
                 let doc = domParser.parseFromString(text, "text/html");
