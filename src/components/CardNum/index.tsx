@@ -12,7 +12,7 @@ import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { CarListItem, InfoContext } from "@/provider/InfoProvider";
-
+import { customFetch as fetch } from '@/utils/FetchQueue';
 const columns: any = [
     { key: 'value', label: '车架号' },
     { key: 'batteryNum', label: '电池码' },
@@ -113,6 +113,7 @@ export default function CardNum() {
 
     async function onSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+        setNumber(0)
         setLoading(true)
         const formData = new FormData(event.currentTarget);
 
@@ -152,43 +153,49 @@ export default function CardNum() {
         })
 
         setCardInfoList([])
-        const resolveList = []
+        const resolveList: Promise<any>[] = []
         for (const item of list) {
-            const result = await getCardNumFetch(item)
-            if (!result) {
-                setNumber(prev => prev + 1)
-                continue
-            }
+            resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
 
-            const {
-                dcxh,
-                dclx,
-                dcpp,
-                zwpp,
-                dcrl,
-                batteryNum
-            } = result
+                const result = await getCardNumFetch(item)
+                if (!result) {
+                    setNumber(prev => prev + 1)
+                    resolve(null)
+                    return
+                }
 
-            const current = {
-                value: item,
-                status: 'success',
-                // batteryModel: dcxh,
-                battery_type: dclx,
-                bfn_or_oe: dcpp,
-                brand: zwpp,
-                batteryCapacity: dcrl,
-                batteryNum: batteryNum,
-            }
+                const {
+                    dcxh,
+                    dclx,
+                    dcpp,
+                    zwpp,
+                    dcrl,
+                    batteryNum
+                } = result
 
-            setCardInfoList((prev: CarListItem[]) => {
-                return [...prev, current]
-            })
-            resolveList.push(current)
+                const current = {
+                    value: item,
+                    status: 'success',
+                    // batteryModel: dcxh,
+                    battery_type: dclx,
+                    bfn_or_oe: dcpp,
+                    brand: zwpp,
+                    batteryCapacity: dcrl,
+                    batteryNum: batteryNum,
+                }
+
+                setCardInfoList((prev: CarListItem[]) => {
+                    return [...prev, current]
+                })
+                resolve(current)
+            }))
         }
 
+        const data = await Promise.all(resolveList)
+        
         invoke('my_generate_excel_command', {
             tableData: {
-                data: resolveList.filter(Boolean),
+                data: data.filter(Boolean),
                 columns
             },
             folderNameString: 'carNum',
@@ -208,11 +215,11 @@ export default function CardNum() {
 
         if (result.code === 0) {
             try {
-                const batteryTextDomRes = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfoByCarNum', {
-                    method: "POST",
-                    body: JSON.stringify({ cardNum: item }),
+                const response = await fetch(`https://www.pzcode.cn/vin/${item}`, {
+                    redirect: 'follow'
                 })
-                const { text } = await batteryTextDomRes.json()
+
+                const text = await response.text();
 
                 let domParser = new DOMParser();
                 let doc = domParser.parseFromString(text, "text/html");

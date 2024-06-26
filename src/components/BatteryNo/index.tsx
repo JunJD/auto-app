@@ -12,6 +12,7 @@ import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
+import { customFetch as fetch } from '@/utils/FetchQueue';
 
 const columns: any = [
     { key: 'value', label: '电池码' },
@@ -109,6 +110,7 @@ export default function BatteryNo() {
     async function onSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true)
+        setNumber(0)
         const formData = new FormData(event.currentTarget);
 
         const batteryNo = formData.get('batteryNo') as string;
@@ -150,38 +152,42 @@ export default function BatteryNo() {
         const resolveList = []
 
         for (const item of list) {
+            resolveList.push(new Promise(async (resolve) => {
+                const result = await getBatteryNoFetch(item)
+                if (!result) {
+                    setNumber(prev => prev + 1)
+                    resolve(null)
+                    return
+                }
 
-            const result = await getBatteryNoFetch(item)
-            if (!result) {
-                setNumber(prev => prev + 1)
-                continue
-            }
+                const {
+                    dcxh,
+                    dclx,
+                    dcpp,
+                    dcrl
+                } = result
 
-            const {
-                dcxh,
-                dclx,
-                dcpp,
-                dcrl
-            } = result
-            console.log(result, 'result!')
-            const current = {
-                value: item,
-                status: 'success',
-                battery_model: dcxh,
-                battery_type: dclx,
-                bfn_or_oe: dcpp,
-                batteryCapacity: dcrl
-            }
+                const current = {
+                    value: item,
+                    status: 'success',
+                    battery_model: dcxh,
+                    battery_type: dclx,
+                    bfn_or_oe: dcpp,
+                    batteryCapacity: dcrl
+                }
 
-            setBatteryListItem((prev: BatteryListItem[]) => {
-                return [current, ...prev]
-            })
-            resolveList.push(current)
+                setBatteryListItem((prev: BatteryListItem[]) => {
+                    return [current, ...prev]
+                })
+                resolve(current)
+            }))
         }
 
+        const data = await Promise.all(resolveList)
+        
         invoke('my_generate_excel_command', {
             tableData: {
-                data: resolveList.filter(Boolean),
+                data: data.filter(Boolean),
                 columns
             },
             folderNameString: '电池码',

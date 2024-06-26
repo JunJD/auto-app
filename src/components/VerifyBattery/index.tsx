@@ -73,6 +73,7 @@ function VerifyBattery() {
     }, [carNumListStr])
 
     const verifyStart = async () => {
+        setNumber(0)
         setLoading(true)
         console.log(batteryMap, 'batteryMap')
         console.log(carNumMap, 'carNumMap')
