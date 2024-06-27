@@ -12,7 +12,7 @@ import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
-import { FetchQueue } from '@/utils/FetchQueue';
+import { FetchQueue, fetchBashUrlList } from '@/utils/FetchQueue';
 
 const columns: any = [
     { key: 'value', label: '电池码' },
@@ -224,10 +224,18 @@ export default function BatteryNo() {
             setLoading(false)
         })
     }
+    const baseUrlIndex = useRef(0)
 
+    function getBaseUrl() {
+        if(baseUrlIndex.current >= fetchBashUrlList.length) {
+            baseUrlIndex.current = 0
+        } 
+        return fetchBashUrlList[baseUrlIndex.current++]
+    }
 
     async function getBatteryNoFetch(item: string) {
-        const response = await fetchRef.current('https://autoappzhouer.dingjunjie.com/api/getBatteryInfo', {
+        const baseUrl = getBaseUrl()
+        const response = await fetchRef.current(`${baseUrl}/api/getBatteryInfo`, {
             method: "POST",
             body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
         }, 1)

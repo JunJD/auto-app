@@ -72,3 +72,14 @@ export function customFetch(input: RequestInfo, init?: RequestInit, priority: nu
 export function pauseFetchQueue(): void {
     fetchQueue.pause();
 }
+
+export const fetchBashUrlList = [
+    'https://autoappzhouertwo.dingjunjie.com',
+    'https://autoappzhouerf.dingjunjie.com',
+    'https://autoappzhouerthree.dingjunjie.com',
+    'https://autoappzhouerf.dingjunjie.com',
+    'https://autoappzhouerg.dingjunjie.com',
+    'https://autoappzhouerh.dingjunjie.com',
+    'https://autoappzhouerj.dingjunjie.com',
+    'https://autoappzhouerk.dingjunjie.com',
+]
