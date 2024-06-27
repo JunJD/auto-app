@@ -183,27 +183,20 @@ export default function BatteryNo() {
 
                     const item = `${leftV}${currentString}${rightV}`
 
-                    const result = await getBatteryNoFetch(item)
+                    let result = await getBatteryNoFetch(item)
                     if (!result) {
                         setNumber(prev => prev + 1)
                         resolve(null)
                         return
                     }
 
-                    const {
-                        dcxh,
-                        dclx,
-                        dcpp,
-                        dcrl
-                    } = result
-
                     const current = {
                         value: item,
                         status: 'success',
-                        battery_model: dcxh,
-                        battery_type: dclx,
-                        bfn_or_oe: dcpp,
-                        batteryCapacity: dcrl
+                        battery_model: result.dcxh,
+                        battery_type: result.dclx,
+                        bfn_or_oe: result.dcpp,
+                        batteryCapacity: result.dcrl
                     }
 
                     setBatteryListItem((prev: BatteryListItem[]) => {
@@ -211,6 +204,7 @@ export default function BatteryNo() {
                     })
                     cacheData.current.push(current)
                     resolve(current)
+                    result = null
                 } catch (error) {
                     resolve(null)
                 }
@@ -249,9 +243,6 @@ export default function BatteryNo() {
             const text = await response.text();
             const 销售单位未入库 = text.includes('销售单位未入库')
             const 车辆制造商 = text.includes('车辆制造商')
-
-            console.table({ 销售单位未入库, 车辆制造商 });
-
 
             if (销售单位未入库 && !车辆制造商) {
                 return result.data

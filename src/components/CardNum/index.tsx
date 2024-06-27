@@ -150,31 +150,27 @@ export default function CardNum() {
 
         let currentString = startComplement;
 
-        const list = Array.from({ length: Number(exhaustiveQuantity) }).fill(0).map((_, index) => {
-            const leftV = carNumber?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
-            const rightV = carNumber?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
-            switch (isGarbled) {
-                case "1":
-                    currentString = incrementNumberString(currentString)
-                    break;
-                case "2":
-                    currentString = incrementAlphaString(currentString)
-                    break;
-                default:
-                    currentString = incrementAlphaNumericString(currentString);
-                    break;
-            }
-            return `${leftV}${currentString}${rightV}`
-        })
-
         setCardInfoList([])
         const resolveList: Promise<CarListItem | null>[] = []
-        for (const item of list) {
+        for (const _ of Array.from({ length: Number(exhaustiveQuantity) }).fill(0)) {
             resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
-
                 try {
-                    const result = await getCardNumFetch(item)
-                    console.log(result, 'result');
+                    const leftV = carNumber?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
+                    const rightV = carNumber?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
+                    switch (isGarbled) {
+                        case "1":
+                            currentString = incrementNumberString(currentString)
+                            break;
+                        case "2":
+                            currentString = incrementAlphaString(currentString)
+                            break;
+                        default:
+                            currentString = incrementAlphaNumericString(currentString);
+                            break;
+                    }
+                    const item = `${leftV}${currentString}${rightV}`
+
+                    let result = await getCardNumFetch(item)
 
                     if (!result) {
                         setNumber(prev => prev + 1)
@@ -182,24 +178,15 @@ export default function CardNum() {
                         return
                     }
 
-                    const {
-                        dcxh,
-                        dclx,
-                        dcpp,
-                        zwpp,
-                        dcrl,
-                        batteryNum
-                    } = result
-
                     const current = {
                         value: item,
                         status: 'success',
                         // batteryModel: dcxh,
-                        battery_type: dclx,
-                        bfn_or_oe: dcpp,
-                        brand: zwpp,
-                        batteryCapacity: dcrl,
-                        batteryNum: batteryNum,
+                        battery_type: result.dclx,
+                        bfn_or_oe: result.dcpp,
+                        brand: result.zwpp,
+                        batteryCapacity: result.dcrl,
+                        batteryNum: result.batteryNum,
                     }
 
                     setCardInfoList((prev: CarListItem[]) => {
@@ -207,6 +194,7 @@ export default function CardNum() {
                     })
                     cacheData.current.push(current)
                     resolve(current)
+                    result = null
                 } catch (error) {
                     resolve(null)
                 }
@@ -232,14 +220,14 @@ export default function CardNum() {
         const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getCarNum', {
             method: "POST",
             body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
-        })
+        }, 1)
         const result = await response.json()
 
         if (result.code === 0) {
             try {
                 const response = await fetch(`https://www.pzcode.cn/vin/${item}`, {
                     redirect: 'follow'
-                })
+                }, 2)
 
                 const text = await response.text();
 
@@ -249,8 +237,9 @@ export default function CardNum() {
                 const nodes = doc.querySelectorAll(".i-tccc-t")
 
                 const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it => it && it?.includes('电池编号'));
+                const batteryNum = innerTexts[0]?.replace(/\s+/g, ' ')
 
-                return { ...result.data, batteryNum: (innerTexts.join('、')) }
+                return { ...result.data, batteryNum }
             } catch (error) {
                 return result.data
             }
