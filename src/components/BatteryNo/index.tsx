@@ -221,7 +221,7 @@ export default function BatteryNo() {
         const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfo', {
             method: "POST",
             body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
-        })
+        }, 1)
         const result = await response.json()
 
         if (result.code === 0) {
@@ -229,7 +229,7 @@ export default function BatteryNo() {
             const response = await fetch(`https://www.pzcode.cn/pwb/${item}`, {
                 redirect: 'follow',
                 // 超时时间
-            })
+            }, 2)
 
             const text = await response.text();
             const 销售单位未入库 = text.includes('销售单位未入库')

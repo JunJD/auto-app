@@ -1,6 +1,6 @@
 export class FetchQueue {
     private maxConcurrent: number;
-    private queue: Array<{ fetchPromise: (controller: AbortController) => Promise<Response>, resolve: (value: Response | PromiseLike<Response>) => void, reject: (reason?: any) => void, controller: AbortController }>;
+    private queue: Array<{ fetchPromise: (controller: AbortController) => Promise<Response>, resolve: (value: Response | PromiseLike<Response>) => void, reject: (reason?: any) => void, controller: AbortController, priority: number }>;
     private activeRequests: number;
     private activeControllers: Set<AbortController>;
 
@@ -11,11 +11,12 @@ export class FetchQueue {
         this.activeControllers = new Set();
     }
 
-    enqueue(fetchPromise: (controller: AbortController) => Promise<Response>): Promise<Response> {
+    enqueue(fetchPromise: (controller: AbortController) => Promise<Response>, priority: number = 0): Promise<Response> {
         const controller = new AbortController();
 
         return new Promise((resolve, reject) => {
-            this.queue.push({ fetchPromise, resolve, reject, controller });
+            this.queue.push({ fetchPromise, resolve, reject, controller, priority });
+            this.queue.sort((a, b) => b.priority - a.priority); // 根据优先级排序，优先级高的在前
             this.processQueue();
         });
     }
@@ -59,24 +60,15 @@ export class FetchQueue {
     // }
 }
 
-const fetchQueue = new FetchQueue(5);
+const fetchQueue = new FetchQueue(8);
 
-export function customFetch(input: RequestInfo, init?: RequestInit): Promise<Response> {
+export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 0): Promise<Response> {
     return fetchQueue.enqueue((controller) => {
         const config = { ...init, signal: controller.signal };
         return fetch(input, config);
-    });
+    }, priority);
 }
 
 export function pauseFetchQueue(): void {
     fetchQueue.pause();
 }
-
-// // Usage example
-// customFetch('https://api.example.com/data')
-//     .then(response => response.json())
-//     .then(data => console.log(data))
-//     .catch(error => console.error('Error:', error));
-
-// 暂停队列并取消所有请求
-// pauseFetchQueue();
