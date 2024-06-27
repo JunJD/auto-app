@@ -243,19 +243,20 @@ export default function BatteryNo() {
 
         if (result.code === 0) {
 
-            const response = await fetchRef.current(`https://www.pzcode.cn/pwb/${item}`, {
-                redirect: 'follow',
-                // 超时时间
-            }, 2)
+            // const response = await fetchRef.current(`https://www.pzcode.cn/pwb/${item}`, {
+            //     redirect: 'follow',
+            //     // 超时时间
+            // }, 2)
 
-            const text = await response.text();
-            const 销售单位未入库 = text.includes('销售单位未入库')
-            const 车辆制造商 = text.includes('车辆制造商')
+            // const text = await response.text();
+            // const 销售单位未入库 = text.includes('销售单位未入库')
+            // const 车辆制造商 = text.includes('车辆制造商')
 
-            if (销售单位未入库 && !车辆制造商) {
-                return result.data
-            }
-            return null
+            // if (销售单位未入库 && !车辆制造商) {
+            //     return result.data
+            // }
+            // return null
+            return result.data
         }
         return null
     }
