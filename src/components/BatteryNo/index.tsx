@@ -12,7 +12,7 @@ import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
-import { pauseFetchQueue, customFetch as fetch } from '@/utils/FetchQueue';
+import { FetchQueue } from '@/utils/FetchQueue';
 
 const columns: any = [
     { key: 'value', label: '电池码' },
@@ -30,8 +30,10 @@ export default function BatteryNo() {
     const [batteryNo, setBatteryNo] = useState('');
     const [errNum, setNumber] = useState(0);
     const cacheData = useRef<BatteryListItem[]>([]);
+    const fetchRef = useRef<any>(null);
+    const pauseFetchQueueRef = useRef<any>(null);
     const pause = () => {
-        pauseFetchQueue()
+        pauseFetchQueueRef.current()
         invoke('my_generate_excel_command', {
             tableData: {
                 data: cacheData.current,
@@ -122,9 +124,24 @@ export default function BatteryNo() {
 
     async function onSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
+
         setLoading(true)
         setNumber(0)
         const formData = new FormData(event.currentTarget);
+
+        const concurrency = Number(formData.get('concurrency')) as number;
+
+        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * 2);
+        fetchRef.current = (input: RequestInfo, init?: RequestInit, priority: number = 0) => {
+            return fetchQueue.enqueue((controller) => {
+                const config = { ...init, signal: controller.signal };
+                return fetch(input, config);
+            }, priority);
+        }
+
+        pauseFetchQueueRef.current = () => {
+            fetchQueue.pause();
+        }
 
         const batteryNo = formData.get('batteryNo') as string;
         const isGarbled = formData.get('isGarbled') as string;
@@ -144,29 +161,27 @@ export default function BatteryNo() {
 
         let currentString = startComplement;
 
-        const list = Array.from({ length: Number(exhaustiveQuantity) }).fill(0).map((_, index) => {
-            const leftV = batteryNo?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
-            const rightV = batteryNo?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
-            switch (isGarbled) {
-                case "1":
-                    currentString = incrementNumberString(currentString)
-                    break;
-                case "2":
-                    currentString = incrementAlphaString(currentString)
-                    break;
-                default:
-                    currentString = incrementAlphaNumericString(currentString);
-                    break;
-            }
-            return `${leftV}${currentString}${rightV}`
-        })
-
         setBatteryListItem([])
         const resolveList: Promise<BatteryListItem | null>[] = []
 
-        for (const item of list) {
+        for (let index = 0; index < Array.from({ length: Number(exhaustiveQuantity) }).fill(0).length; index++) {
             resolveList.push(new Promise(async (resolve) => {
                 try {
+                    const leftV = batteryNo?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
+                    const rightV = batteryNo?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
+                    switch (isGarbled) {
+                        case "1":
+                            currentString = incrementNumberString(currentString)
+                            break;
+                        case "2":
+                            currentString = incrementAlphaString(currentString)
+                            break;
+                        default:
+                            currentString = incrementAlphaNumericString(currentString);
+                            break;
+                    }
+
+                    const item = `${leftV}${currentString}${rightV}`
 
                     const result = await getBatteryNoFetch(item)
                     if (!result) {
@@ -218,7 +233,7 @@ export default function BatteryNo() {
 
 
     async function getBatteryNoFetch(item: string) {
-        const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfo', {
+        const response = await fetchRef.current('https://autoappzhouer.dingjunjie.com/api/getBatteryInfo', {
             method: "POST",
             body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
         }, 1)
@@ -226,7 +241,7 @@ export default function BatteryNo() {
 
         if (result.code === 0) {
 
-            const response = await fetch(`https://www.pzcode.cn/pwb/${item}`, {
+            const response = await fetchRef.current(`https://www.pzcode.cn/pwb/${item}`, {
                 redirect: 'follow',
                 // 超时时间
             }, 2)
@@ -262,6 +277,9 @@ export default function BatteryNo() {
                                 handleStartPosition("")
                                 handleStartComplement('')
                             }} sx={{ flex: 1 }} />
+
+                        <FormLabel>并发数</FormLabel>
+                        <Input type="number" required name="concurrency" sx={{ flex: 1 }} defaultValue={5} />
                         {/* <FormLabel>品牌号</FormLabel> */}
                         {/* <Input name="carBrand" sx={{ flex: 1 }} /> */}
                     </Box>
