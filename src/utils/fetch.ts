@@ -77,11 +77,6 @@ export const incrementAlphaNumericString = (str: string): string => {
         arr.unshift('1');
     }
 
-    console.log(arr.join(''), "arr.join('')")
     return arr.join('');
 };
 
-// 测试函数
-console.log(incrementAlphaString("azz")); // Output: "baa"
-console.log(incrementNumberString("199")); // Output: "200"
-console.log(incrementAlphaNumericString("a1z9")); // Output: "a2a0"

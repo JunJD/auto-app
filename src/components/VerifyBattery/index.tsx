@@ -37,7 +37,7 @@ function VerifyBattery() {
 
     React.useEffect(() => {
         const splitBatteryArray = batteryNoListStr.split('\n').filter(Boolean)
-        console.log(splitBatteryArray, 'splitBatteryArray')
+
         if (splitBatteryArray.length > 0) {
             const map = new Map()
             for (const batteryItem of splitBatteryArray) {
@@ -75,8 +75,6 @@ function VerifyBattery() {
     const verifyStart = async () => {
         setNumber(0)
         setLoading(true)
-        console.log(batteryMap, 'batteryMap')
-        console.log(carNumMap, 'carNumMap')
 
         const resolveList: Promise<any>[] = []
 
@@ -163,7 +161,6 @@ function VerifyBattery() {
                     return findIndex === index
                 }))
             } else if (result.msg === '操作频繁，请稍后再试') {
-                console.log('操作频繁，请稍后再试 batterys===>', dcbhurl.join("|"));
                 if (!retryCounts[dcbhurl.join("|")!]) {
                     retryCounts[dcbhurl.join("|")!] = 0;
                 }
@@ -175,7 +172,6 @@ function VerifyBattery() {
                     dcbhurlList.push(dcbhurl!)
                 } else {
                     setNumber(prev => prev + 1)
-                    console.log(`Battery ${dcbhurl} has reached the maximum retry limit.`);
                 }
 
             }
@@ -220,7 +216,6 @@ function VerifyBattery() {
                     return findIndex === index
                 }))
             } else if (result.msg === '操作频繁，请稍后再试') {
-                console.log('操作频繁，请稍后再试 batterys===>', battery);
                 if (!retryCounts[battery!]) {
                     retryCounts[battery!] = 0;
                 }
@@ -231,7 +226,6 @@ function VerifyBattery() {
                     batterys.push(battery!);
                 } else {
                     setNumber(prev => prev + 1)
-                    console.log(`Battery ${battery} has reached the maximum retry limit.`);
                 }
             }
         }
@@ -325,7 +319,6 @@ function VerifyBattery() {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = xlsx.utils.sheet_to_json(worksheet);
-        console.log(jsonData); // 输出表格数据
         return jsonData
     }
 
