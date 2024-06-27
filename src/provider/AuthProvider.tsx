@@ -86,6 +86,10 @@ export default function AuthProvider({
         setToken(token)
     }
 
+    // 获取当前路径
+    const path = window.location.pathname
+    // 路径包含background，直接通过
+    if (path.includes('background')) return <>{children}</>
     if (!deviceId) return <Button onClick={inputDevice}>请输入设备号</Button>
 
     return (
