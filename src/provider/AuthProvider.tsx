@@ -3,7 +3,7 @@
 import appStorage from "@/utils/appStorage";
 import { createContext, useEffect, useRef, useState } from "react"
 import * as CryptoJS from 'crypto'
-import { Button } from "@mui/joy";
+import { Button, Input, Stack } from "@mui/joy";
 interface Row {
     deviceId: string;
     enabled: boolean;
@@ -52,14 +52,9 @@ export default function AuthProvider({
         }
     }, [devices, deviceId])
 
-    function inputDevice() {
-        const id = prompt('message')
-        setDeviceId(id ?? '')
-    }
-
     async function getData() {
         const response = await fetch('https://autoappzhouer.dingjunjie.com/api/devices', {
-        // const response = await fetch('/api/devices', {
+            // const response = await fetch('/api/devices', {
             method: "GET"
         })
         const result = await response.json()
@@ -86,7 +81,24 @@ export default function AuthProvider({
         setToken(token)
     }
 
-    if (!deviceId) return <Button onClick={inputDevice}>请输入设备号</Button>
+    if (!deviceId) return (
+        <>
+            <form
+                onSubmit={(event) => {
+                    event.preventDefault();
+                    const formData = new FormData(event.currentTarget);
+                    const deviceId = formData.get("deviceId") as string;
+                    setDeviceId(deviceId)
+                }}
+            >
+                <Stack spacing={1}>
+                    <Input placeholder="请输入设备号" name="deviceId" />
+                    <Button type="submit" >确定设备号</Button>
+                </Stack>
+            </form>
+        </>
+    )
+
 
     return (
         <AuthContext.Provider value={{ token, setToken: _setToken }}>
