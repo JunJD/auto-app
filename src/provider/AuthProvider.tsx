@@ -58,8 +58,8 @@ export default function AuthProvider({
     }
 
     async function getData() {
-        // const response = await fetch('https://autoappzhouer.dingjunjie.com/api/devices', {
-        const response = await fetch('/api/devices', {
+        const response = await fetch('https://autoappzhouer.dingjunjie.com/api/devices', {
+        // const response = await fetch('/api/devices', {
             method: "GET"
         })
         const result = await response.json()
