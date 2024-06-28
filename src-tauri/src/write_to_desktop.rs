@@ -57,8 +57,8 @@ pub async fn save_qr_code(
     let content = content.to_string();
     spawn_blocking(move || {
         let _lock = file_lock.lock().unwrap();
-
-        let code = QrCode::new(&content).map_err(|e| format!("Failed to create QR code: {}", e))?;
+        let url = format!("https://www.pzcode.cn/pwb/{}", content);
+        let code = QrCode::new(&url).map_err(|e| format!("Failed to create QR code: {}", e))?;
         let image = code.render::<Luma<u8>>().build();
         image
             .save(&path)
