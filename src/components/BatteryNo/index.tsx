@@ -7,7 +7,7 @@ import Option from '@mui/joy/Option';
 import Stack from "@mui/joy/Stack";
 import FormLabel from '@mui/joy/FormLabel';
 import { FormEvent, useContext, useRef, useState } from "react";
-import { incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
+import { delay, incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
@@ -131,7 +131,7 @@ export default function BatteryNo() {
 
         const concurrency = Number(formData.get('concurrency')) as number;
 
-        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * 2);
+        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * fetchBashUrlList.length);
         fetchRef.current = (input: RequestInfo, init?: RequestInit, priority: number = 0) => {
             return fetchQueue.enqueue((controller) => {
                 const config = { ...init, signal: controller.signal };
@@ -163,6 +163,8 @@ export default function BatteryNo() {
 
         setBatteryListItem([])
         const resolveList: Promise<BatteryListItem | null>[] = []
+
+        await delay(Number(exhaustiveQuantity) / 10)
 
         for (let index = 0; index < Array.from({ length: Number(exhaustiveQuantity) }).fill(0).length; index++) {
             resolveList.push(new Promise(async (resolve) => {
@@ -227,9 +229,9 @@ export default function BatteryNo() {
     const baseUrlIndex = useRef(0)
 
     function getBaseUrl() {
-        if(baseUrlIndex.current >= fetchBashUrlList.length) {
+        if (baseUrlIndex.current >= fetchBashUrlList.length) {
             baseUrlIndex.current = 0
-        } 
+        }
         return fetchBashUrlList[baseUrlIndex.current++]
     }
 
@@ -242,21 +244,16 @@ export default function BatteryNo() {
         const result = await response.json()
 
         if (result.code === 0) {
+            const responseByNo = await fetch(`${baseUrl}/api/getBatteryInfoByNo`, {
+                method: "POST",
+                body: JSON.stringify({ batteryNo: item }),
+            })
+            const { code } = await responseByNo.json()
+            if (code === 0) {
+                return result.data
+            }
+            return null
 
-            // const response = await fetchRef.current(`https://www.pzcode.cn/pwb/${item}`, {
-            //     redirect: 'follow',
-            //     // 超时时间
-            // }, 2)
-
-            // const text = await response.text();
-            // const 销售单位未入库 = text.includes('销售单位未入库')
-            // const 车辆制造商 = text.includes('车辆制造商')
-
-            // if (销售单位未入库 && !车辆制造商) {
-            //     return result.data
-            // }
-            // return null
-            return result.data
         }
         return null
     }
