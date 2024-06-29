@@ -16,21 +16,32 @@ export const delay = (ms: number) => {
 }
 
 // 仅有字母递增
-export const incrementAlphaString = (str: string): string => {
+export const incrementAlphaString = (str: string): string | null => {
     let arr = str.split('').reverse();
+
     for (let i = 0; i < arr.length; i++) {
-        if (arr[i] === 'z') {
-            arr[i] = 'a';
+        if (arr[i] === 'Z') {
+            arr[i] = 'A';
         } else {
             arr[i] = String.fromCharCode(arr[i].charCodeAt(0) + 1);
             return arr.reverse().join('');
         }
     }
-    arr.push('a');
+
+    // 如果所有的字母都是 'Z'，意味着无法再增长
+    if (arr.every(char => char === 'A')) {
+        return null; // 无法再增长
+    }
+
     return arr.reverse().join('');
 };
 
-export const incrementNumberString = (str: string): string => {
+export const incrementNumberString = (str: string): string | null => {
+    // 检查字符串是否全是9
+    if (/^9+$/.test(str)) {
+        return null;
+    }
+    
     let num = parseInt(str, 10);
     num += 1;
     
@@ -39,49 +50,47 @@ export const incrementNumberString = (str: string): string => {
     while (incrementedStr.length < str.length) {
         incrementedStr = '0' + incrementedStr;
     }
+    console.log(incrementedStr, 'incrementedStr')
     return incrementedStr;
-};
+}
+
+
+
 
 // 数字和字母混合递增
-export const incrementAlphaNumericString = (str: string): string => {
-    let arr = str.split('');
+export const incrementAlphaNumericString = (str: string): string | null => {
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const charsLength = chars.length;
     let carry = 1;
+    let result = '';
 
-    for (let i = arr.length - 1; i >= 0; i--) {
-        if (/[a-zA-Z]/.test(arr[i])) {
-            if (arr[i] === 'z') {
-                arr[i] = 'a';
-                carry = 1;
-            } else if (arr[i] === 'Z') {
-                arr[i] = 'A';
-                carry = 1;
-            } else {
-                arr[i] = String.fromCharCode(arr[i].charCodeAt(0) + carry);
-                carry = 0;
-                break;
-            }
-        } else if (/\d/.test(arr[i])) {
-            let num = parseInt(arr[i], 10) + carry;
-            if (num > 9) {
-                arr[i] = '0';
-                carry = 1;
-            } else {
-                arr[i] = num.toString();
-                carry = 0;
-                break;
-            }
+    for (let i = str.length - 1; i >= 0; i--) {
+        const currentChar = str[i];
+        const currentIndex = chars.indexOf(currentChar);
+
+        if (currentIndex === -1) {
+            throw new Error('Invalid character in input string');
         }
+
+        let newIndex = currentIndex + carry;
+        if (newIndex >= charsLength) {
+            newIndex = newIndex % charsLength;
+            carry = 1;
+        } else {
+            carry = 0;
+        }
+
+        result = chars[newIndex] + result;
     }
 
-    if (carry === 1) {
-        arr.unshift('1');
+    if (carry > 0) {
+        result = '1' + result;
     }
 
-    console.log(arr.join(''), "arr.join('')")
-    return arr.join('');
-};
+    // 如果输入字符串是全部由'Z'组成的
+    if (/^Z+$/.test(str)) {
+        return null;
+    }
 
-// 测试函数
-console.log(incrementAlphaString("azz")); // Output: "baa"
-console.log(incrementNumberString("199")); // Output: "200"
-console.log(incrementAlphaNumericString("a1z9")); // Output: "a2a0"
+    return result;
+}

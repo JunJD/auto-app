@@ -13,6 +13,7 @@ import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
 import { FetchQueue, fetchBashUrlList } from '@/utils/FetchQueue';
+import appStorage from "@/utils/appStorage";
 
 const columns: any = [
     { key: 'value', label: '电池码' },
@@ -34,16 +35,26 @@ export default function BatteryNo() {
     const pauseFetchQueueRef = useRef<any>(null);
     const pause = () => {
         pauseFetchQueueRef.current()
-        invoke('my_generate_excel_command', {
-            tableData: {
-                data: cacheData.current,
-                columns
-            },
-            folderNameString: '电池码',
-            xlsxFilePathString: '电池码'
-        }).finally(() => {
+        appStorage.setItem("batteryListItem", JSON.stringify(cacheData.current))
+        if (cacheData.current.length) {
+            invoke('my_generate_excel_command', {
+                tableData: {
+                    data: cacheData.current.filter(it => it.status === 'success'),
+                    columns: [...columns,
+                    { key: 'dcscqy', label: '蓄电池生产企业' },
+                    { key: 'dcxh', label: '蓄电池型号' },
+                    { key: 'cjsj', label: '生产日期' },
+                    { key: 'URL', label: '网址' },
+                    ]
+                },
+                folderNameString: '电池码',
+                xlsxFilePathString: '电池码'
+            }).finally(() => {
+                setLoading(false)
+            })
+        } else[
             setLoading(false)
-        })
+        ]
     }
     const handleStartPosition = (value: string) => {
         const num = +value
@@ -70,7 +81,7 @@ export default function BatteryNo() {
         if (_isGarbled === "1") {
             // 校验是否为纯数字
             const regex = /^\d+$/;
-            if (!regex.test(value)) {
+            if (!regex.test(value) && value) {
                 return;
             }
         }
@@ -78,7 +89,7 @@ export default function BatteryNo() {
         if (_isGarbled === "2") {
             // 校验是否为纯字母
             const regex = /^[a-zA-Z]+$/;
-            if (!regex.test(value)) {
+            if (!regex.test(value) && value) {
                 return;
             }
         }
@@ -86,7 +97,7 @@ export default function BatteryNo() {
         if (_isGarbled === "3") {
             // 校验是否为纯字母数字
             const regex = /^[a-zA-Z0-9]+$/;
-            if (!regex.test(value)) {
+            if (!regex.test(value) && value) {
                 return;
             }
         }
@@ -95,6 +106,7 @@ export default function BatteryNo() {
             // 跳过第一个空格并在startComplement.length 位置处补上第二个空格
             const endIndex = prev.indexOf(' ');
             const ennValue = prev.slice(endIndex).replace(/\s/g, '');
+
             if (ennValue.length >= value.length || ennValue.length === 0) {
                 setStartComplement(value);
             }
@@ -115,7 +127,7 @@ export default function BatteryNo() {
         setIsGarbled(newValue);
         setTimeout(() => {
             if (newValue === '2') {
-                handleStartComplement('aaaa', newValue);
+                handleStartComplement('AAAA', newValue);
             } else if (newValue === "1") {
                 handleStartComplement('0000', newValue);
             }
@@ -162,43 +174,66 @@ export default function BatteryNo() {
         let currentString = startComplement;
 
         setBatteryListItem([])
+        cacheData.current = []
         const resolveList: Promise<BatteryListItem | null>[] = []
 
-        await delay(Number(exhaustiveQuantity) / 10)
+        const list = []
 
-        for (let index = 0; index < Array.from({ length: Number(exhaustiveQuantity) }).fill(0).length; index++) {
+        for (const _ of Array.from({ length: Number(exhaustiveQuantity) }).fill(0)) {
+            const leftV = batteryNo?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
+            const rightV = batteryNo?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
+            let current = ''
+            switch (isGarbled) {
+                case "1":
+                    current = incrementNumberString(currentString) ?? ''
+                    break;
+                case "2":
+                    current = incrementAlphaString(currentString) ?? ''
+                    break;
+                default:
+                    current = incrementAlphaNumericString(currentString) ?? ''
+                    break;
+            }
+
+            if (current) {
+                currentString = current
+                const item = `${leftV}${currentString}${rightV}`
+                list.push(item)
+            } else {
+                break
+            }
+
+        }
+
+        for (const item of list) {
             resolveList.push(new Promise(async (resolve) => {
                 try {
-                    const leftV = batteryNo?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
-                    const rightV = batteryNo?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
-                    switch (isGarbled) {
-                        case "1":
-                            currentString = incrementNumberString(currentString)
-                            break;
-                        case "2":
-                            currentString = incrementAlphaString(currentString)
-                            break;
-                        default:
-                            currentString = incrementAlphaNumericString(currentString);
-                            break;
+                    let current: BatteryListItem = {
+                        status: 'pending',
+                        value: item,
                     }
-
-                    const item = `${leftV}${currentString}${rightV}`
-
                     let result = await getBatteryNoFetch(item)
-                    if (!result) {
+                    if (result.code !== 0) {
                         setNumber(prev => prev + 1)
-                        resolve(null)
+                        current = {
+                            value: item,
+                            status: result.msg ?? '校验未通过',
+                        }
+                        setBatteryListItem((prev: BatteryListItem[]) => {
+                            return [current, ...prev]
+                        })
+                        resolve(current)
                         return
                     }
 
-                    const current = {
+                    current = {
+                        ...result.data,
                         value: item,
                         status: 'success',
-                        battery_model: result.dcxh,
-                        battery_type: result.dclx,
-                        bfn_or_oe: result.dcpp,
-                        batteryCapacity: result.dcrl
+                        battery_model: result.data.dcxh,
+                        battery_type: result.data.dclx,
+                        bfn_or_oe: result.data.dcpp,
+                        batteryCapacity: result.data.dcrl,
                     }
 
                     setBatteryListItem((prev: BatteryListItem[]) => {
@@ -206,25 +241,41 @@ export default function BatteryNo() {
                     })
                     cacheData.current.push(current)
                     resolve(current)
-                    result = null
                 } catch (error) {
-                    resolve(null)
+                    const current = {
+                        value: item,
+                        status: '请求超时或者取消了请求',
+                    }
+                    setBatteryListItem((prev: BatteryListItem[]) => {
+                        return [current, ...prev]
+                    })
+                    resolve(current)
                 }
             }))
         }
 
-        cacheData.current = (await Promise.all(resolveList)).filter(Boolean) as BatteryListItem[]
+        await Promise.all(resolveList)
 
-        invoke('my_generate_excel_command', {
-            tableData: {
-                data: cacheData.current,
-                columns
-            },
-            folderNameString: '电池码',
-            xlsxFilePathString: 'batteryNo'
-        }).finally(() => {
+        appStorage.setItem("batteryListItem", JSON.stringify(cacheData.current))
+        if (cacheData.current.length) {
+            invoke('my_generate_excel_command', {
+                tableData: {
+                    data: cacheData.current,
+                    columns: [...columns,
+                    { key: 'dcscqy', label: '蓄电池生产企业' },
+                    { key: 'dcxh', label: '蓄电池型号' },
+                    { key: 'cjsj', label: '生产日期' },
+                    { key: 'URL', label: '网址' },
+                    ]
+                },
+                folderNameString: '电池码',
+                xlsxFilePathString: 'batteryNo'
+            }).finally(() => {
+                setLoading(false)
+            })
+        } else {
             setLoading(false)
-        })
+        }
     }
     const baseUrlIndex = useRef(0)
 
@@ -244,18 +295,18 @@ export default function BatteryNo() {
         const result = await response.json()
 
         if (result.code === 0) {
-            const responseByNo = await fetch(`${baseUrl}/api/getBatteryInfoByNo`, {
+            const responseByNo = await fetchRef.current(`${baseUrl}/api/getBatteryInfoByNo`, {
                 method: "POST",
                 body: JSON.stringify({ batteryNo: item }),
-            })
+            }, 2)
             const { code } = await responseByNo.json()
-            if (code === 0) {
-                return result.data
-            }
-            return null
 
+            if (code === 0) {
+                return { ...result, data: { ...result.data, URL: `https://www.pzcode.cn/pwb/${item}` } }
+            }
+            return { ...result, code: 1 }
         }
-        return null
+        return result
     }
 
 
@@ -298,14 +349,14 @@ export default function BatteryNo() {
                         <Button type="submit" loading={loading}>开始运行</Button>
                         <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
                         <Stack spacing={10} direction='row'>
-                            <span>当前有效数量： {batteryList.length}</span>
+                            <span>当前有效数量： {batteryList.filter(it => it.status === 'success').length}</span>
                             <span>当前无效数量： {errNum}</span>
                         </Stack>
                     </Box>
                 </Stack>
             </form>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <ListTable<BatteryListItem> data={batteryList} columns={columns} />
+                <ListTable<BatteryListItem> data={batteryList} columns={[...columns, { key: 'status', label: '状态' }]} />
             </Box>
         </Stack>
     )

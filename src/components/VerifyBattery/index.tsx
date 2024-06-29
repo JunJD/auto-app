@@ -14,7 +14,9 @@ import { delay } from '@/utils/fetch';
 import * as xlsx from 'xlsx'
 import ListTable from '../ListTable';
 import { invoke } from '@tauri-apps/api';
-import { pauseFetchQueue, customFetch as fetch } from '@/utils/FetchQueue';
+import { pauseFetchQueue, customFetch as fetch, fetchBashUrlList } from '@/utils/FetchQueue';
+import Select from '@mui/joy/Select';
+import Option from '@mui/joy/Option';
 
 interface ValidBatteryListItem {
     value: string,
@@ -32,6 +34,14 @@ function VerifyBattery() {
     const { token } = React.useContext(AuthContext)
     const { cardInfoList, setCardInfoList, batteryList, setBatteryListItem } = React.useContext(InfoContext)
 
+    const batteryListFilter = React.useMemo(() => {
+        return batteryList.filter(it => it.status === 'success')
+    }, [batteryList])
+
+    const cardInfoListFilter = React.useMemo(() => {
+        return cardInfoList.filter(it => it.status === 'success')
+    }, [cardInfoList])
+
     const [validBattery, setValidBattery] = React.useState<Array<ValidBatteryListItem>>([])
     const [loading, setLoading] = React.useState(false)
     const [batteryMap, setBatteryMap] = React.useState<Map<string, string[]>>(new Map())
@@ -39,21 +49,21 @@ function VerifyBattery() {
     const [errNum, setNumber] = React.useState(0);
     const [errMapping, setErrMapping] = React.useState(0);
     const cacheData = React.useRef<ValidBatteryListItem[]>([]);
-    // const cacheData2 = React.useRef<ValidBatteryListItem[]>(validBattery);
+
     const pauseRef = React.useRef(false);
-    const pause = () => {
+
+    const pause = async () => {
         pauseRef.current = true;
         pauseFetchQueue();
-        setTimeout(async () => {
-            await invoke('my_generate_excel_command', {
+        if (cacheData.current.length) {
+            invoke('my_generate_excel_command', {
                 tableData: {
                     data: cacheData.current,
                     columns
                 },
                 folderNameString: '可绑电池码',
-                xlsxFilePathString: '可绑电池码-非铅酸'
+                xlsxFilePathString: '可绑电池码'
             }).finally(async () => {
-                // 开始打印qrcode
                 await invoke('my_generate_qrcode_command', {
                     tableData: {
                         data: cacheData.current,
@@ -64,16 +74,18 @@ function VerifyBattery() {
                     setLoading(false)
                 })
             })
-        }, 1000);
+        } else {
+            setLoading(false)
+        }
     }
 
     React.useEffect(() => {
         const splitBatteryArray = batteryNoListStr.split('\n').filter(Boolean)
-        console.log(splitBatteryArray, 'splitBatteryArray')
+
         if (splitBatteryArray.length > 0) {
             const map = new Map()
             for (const batteryItem of splitBatteryArray) {
-                const findInfo = batteryList.find(item => item.value === batteryItem)
+                const findInfo = batteryListFilter.find(item => item.value === batteryItem)
                 const key = `${findInfo?.bfn_or_oe ?? '未知'}-${findInfo?.batteryCapacity ?? '未知'}-${findInfo?.battery_type ?? '未知'}`
                 if (map.has(key)) {
                     map.get(key)?.push(batteryItem)
@@ -86,12 +98,13 @@ function VerifyBattery() {
         }
 
     }, [batteryNoListStr])
+
     React.useEffect(() => {
         const splitCarNumArray = carNumListStr.split('\n').filter(Boolean)
         if (splitCarNumArray.length > 0) {
             const map = new Map()
             for (const CarNumItem of splitCarNumArray) {
-                const findInfo = cardInfoList.find(item => item.value === CarNumItem)
+                const findInfo = cardInfoListFilter.find(item => item.value === CarNumItem)
                 const key = `${findInfo?.bfn_or_oe ?? '未知'}-${findInfo?.batteryCapacity ?? '未知'}-${findInfo?.battery_type ?? '未知'}`
                 if (map.has(key)) {
                     map.get(key)?.push(CarNumItem)
@@ -104,31 +117,57 @@ function VerifyBattery() {
 
     }, [carNumListStr])
 
-    const verifyStart = async () => {
+    const baseUrlIndex = React.useRef(0)
+    function getBaseUrl() {
+        if (baseUrlIndex.current >= fetchBashUrlList.length) {
+            baseUrlIndex.current = 0
+        }
+        return fetchBashUrlList[baseUrlIndex.current++]
+    }
+
+    const verifyStart = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setValidBattery([])
+        const formData = new FormData(event.currentTarget);
+
+        const isFlag = formData.get('isFlag') as string;
+
         setNumber(0)
         setErrMapping(0)
         setLoading(true)
-        console.log(batteryMap, 'batteryMap')
-        console.log(carNumMap, 'carNumMap')
-
+        cacheData.current = []
         const resolveList: Promise<any>[] = []
-
         batteryMap.forEach((value, key) => {
             resolveList.push(new Promise(async (resolve) => {
 
                 if (carNumMap.has(key)) {
                     const keyItem = key.split('-')
                     const batteryType = keyItem[2]
-
                     if (batteryType === '铅酸') {
                         try {
-                            await verifyForQS([...value], carNumMap.get(key)!, key)
+                            resolve(await verifyForQS([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []]!, key))
                         } finally {
                             resolve(null)
                         }
                     } else {
                         try {
-                            await verifyForLD([...value], carNumMap.get(key)!, key)
+                            resolve(await verifyForLD([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []], key))
+                        } finally {
+                            resolve(null)
+                        }
+                    }
+                } else if (key === '未知-未知-未知') {
+                    // 从 carNumMap 获取所有的车架号
+                    const allCarNums = Array.from(carNumMap.values()).flat()
+                    if (isFlag === '2') {
+                        try {
+                            resolve(await verifyForQS([...value], allCarNums, key))
+                        } finally {
+                            resolve(null)
+                        }
+                    } else {
+                        try {
+                            resolve(await verifyForLD([...value], allCarNums, key))
                         } finally {
                             resolve(null)
                         }
@@ -136,30 +175,34 @@ function VerifyBattery() {
                 } else {
                     setErrMapping(prev => prev + value.length)
                     resolve(null)
-                    console.error('not has');
                 }
             }))
         })
 
         await Promise.all(resolveList)
-        await invoke('my_generate_excel_command', {
-            tableData: {
-                data: cacheData.current,
-                columns
-            },
-            folderNameString: '可绑电池码',
-            xlsxFilePathString: '可绑电池码'
-        }).finally(async () => {
-            await invoke('my_generate_qrcode_command', {
+        if (cacheData.current.length) {
+
+            invoke('my_generate_excel_command', {
                 tableData: {
                     data: cacheData.current,
                     columns
                 },
                 folderNameString: '可绑电池码',
-            }).finally(() => {
-                setLoading(false)
+                xlsxFilePathString: '可绑电池码'
+            }).finally(async () => {
+                await invoke('my_generate_qrcode_command', {
+                    tableData: {
+                        data: cacheData.current,
+                        columns
+                    },
+                    folderNameString: '可绑电池码',
+                }).finally(() => {
+                    setLoading(false)
+                })
             })
-        })
+        } else {
+            setLoading(false)
+        }
     }
 
     const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[], key: string) => {
@@ -168,27 +211,27 @@ function VerifyBattery() {
         // const resultList: string[] = []
         const retryLimit = 10; // 设置最大重试次数
         const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
-
         const dcbhurlList: string[][] = []
-
         for (let i = 0; i < batterys.length; i += groupNum) {
             const group = batterys.slice(i, i + groupNum)
+            if (group.length < groupNum) {
+                group.push(...batterys.slice(0, groupNum - group.length))
+            }
             dcbhurlList.push(group)
         }
-
         while (dcbhurlList.length > 0) {
             if (pauseRef.current) {
                 pauseRef.current = false
                 break
             }
             try {
-
                 const dcbhurl = dcbhurlList.shift()
                 if (!dcbhurl) {
                     setNumber(prev => prev + 1)
                     continue
                 }
-                const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
+                const baseUrl = getBaseUrl()
+                const response = await fetch(`${baseUrl}/api/verifyBattery`, {
                     method: 'POST',
                     body: JSON.stringify({
                         token,
@@ -203,7 +246,6 @@ function VerifyBattery() {
                 const result = await response.json()
 
                 await delay(1000)
-
                 if (result.code === 0) {
                     cacheData.current.push(...(dcbhurl.map(it => ({ value: it, key }))))
                     setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key }))].filter((item, index) => {
@@ -212,7 +254,6 @@ function VerifyBattery() {
                         return findIndex === index
                     }))
                 } else if (result.msg === '操作频繁，请稍后再试') {
-                    console.log('操作频繁，请稍后再试 batterys===>', dcbhurl.join("|"));
                     if (!retryCounts[dcbhurl.join("|")!]) {
                         retryCounts[dcbhurl.join("|")!] = 0;
                     }
@@ -224,7 +265,6 @@ function VerifyBattery() {
                         dcbhurlList.push(dcbhurl!)
                     } else {
                         setNumber(prev => prev + 1)
-                        console.log(`Battery ${dcbhurl} has reached the maximum retry limit.`);
                     }
 
                 }
@@ -232,30 +272,25 @@ function VerifyBattery() {
                 continue
             }
         }
-
-        // return Array.from(new Set(resultList)).map(it => ({ value: it }));
     }
 
     const verifyForLD = async (batterys: BatteryListItem['value'][], carNums: string[], key: string) => {
-        // const resultList: string[] = []
-
         const retryLimit = 10; // 设置最大重试次数
         const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
-
         while (batterys.length > 0) {
             if (pauseRef.current) {
                 pauseRef.current = false
                 break
             }
             try {
-
                 const battery = batterys.shift()
                 const redoBattery = validBattery.find(item => item.value === battery)
                 if (redoBattery) {
                     setNumber(prev => prev + 1)
                     continue
                 }
-                const response = await fetch('https://autoappzhouer.dingjunjie.com/api/verifyBattery', {
+                const baseUrl = getBaseUrl()
+                const response = await fetch(`${baseUrl}/api/verifyBattery`, {
                     method: 'POST',
                     body: JSON.stringify({
                         token,
@@ -267,9 +302,7 @@ function VerifyBattery() {
                     },
                 })
                 const result = await response.json()
-
                 await delay(1000)
-
                 if (result.code === 0) {
                     cacheData.current.push({ value: battery!, key })
                     setValidBattery(prev => [...prev, { value: battery!, key }].filter((item, index) => {
@@ -289,15 +322,12 @@ function VerifyBattery() {
                         batterys.push(battery!);
                     } else {
                         setNumber(prev => prev + 1)
-                        console.log(`Battery ${battery} has reached the maximum retry limit.`);
                     }
                 }
             } catch (error) {
                 continue
             }
         }
-
-        // return Array.from(new Set(resultList)).map(it => ({ value: it }));
     }
 
     const getCjhUrlByCarNums = (numList: string[]) => {
@@ -317,12 +347,12 @@ function VerifyBattery() {
     }, [batteryNoListStr])
 
     const autoSyncCarNum = async () => {
-        const str = cardInfoList.map(it => it.value).join('\n')
+        const str = cardInfoListFilter.map(it => it.value).join('\n')
         setCarNumListStr(str)
     }
 
     const autoSyncBatteryNo = async () => {
-        const str = batteryList.map(it => it.value).join('\n')
+        const str = batteryListFilter.map(it => it.value).join('\n')
         setBatteryNoListStr(str)
     }
 
@@ -330,7 +360,6 @@ function VerifyBattery() {
         let text = ''
         try {
             const dataJson = await getFileText() as Array<{ '电池码': string, '电池品牌': string, 电池容量: string, 电池类型: string }>
-
             const data = dataJson.map(item => ({
                 value: item.电池码,
                 status: 'success',
@@ -343,14 +372,12 @@ function VerifyBattery() {
         } catch (error) {
 
         }
-
         setBatteryNoListStr(text)
     }
     const importCarNum = async () => {
         let text = ''
         try {
             const dataJson = await getFileText() as Array<{ '车架号': string, '电池品牌': string, 电池容量: string, 电池类型: string }>
-
             const carData = dataJson.map(item => ({
                 value: item.车架号,
                 status: 'success',
@@ -386,13 +413,49 @@ function VerifyBattery() {
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
         const jsonData = xlsx.utils.sheet_to_json(worksheet);
-        console.log(jsonData); // 输出表格数据
         return jsonData
+    }
+
+    async function handleCarNumListStr(value: string) {
+        // const list = value.split('\n').filter(Boolean)
+
+        // const _list = list.filter(it => {
+        //     return !cardInfoListFilter.some(item => item.value === it)
+        // })
+
+        setCarNumListStr(value)
+
+        // const reoslves = (await Promise.all(_list.map(async (item) => {
+        //     const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getCarNum', {
+        //         method: "POST",
+        //         body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
+        //     }, 1)
+        //     const result = await response.json()
+        //     return { ...result, value: item }
+        // }))).filter(res => res.code === 0).map(it => ({
+        //     value: it.value,
+        //     status: 'success',
+        //     // batteryModel: dcxh,
+        //     battery_type: it.data.dclx,
+        //     bfn_or_oe: it.data.dcpp,
+        //     brand: it.data.zwpp,
+        //     batteryCapacity: it.data.dcrl,
+        //     battery_num: it.data.batteryNum,
+        // }))
+        // if (reoslves.length) {
+        //     setCardInfoList((prev) => {
+        //         return [
+        //             ...prev,
+        //             ...reoslves
+        //         ]
+        //     })
+        //     setCarNumListStr(value)
+        // }
     }
 
     return (
         <Stack spacing={2} sx={{ width: '100%', height: '100%', overflow: 'hidden' }}>
-            <form>
+            <form onSubmit={verifyStart}>
                 <Stack direction="row" spacing={2}>
                     <FormControl sx={{ flex: '1' }}>
                         <FormLabel>
@@ -404,7 +467,7 @@ function VerifyBattery() {
                             minRows={3}
                             maxRows={10}
                             value={carNumListStr}
-                            onChange={(e) => setCarNumListStr(e.target.value)}
+                            onChange={(e) => handleCarNumListStr(e.target.value)}
                             endDecorator={
                                 <Box
                                     sx={{
@@ -417,7 +480,7 @@ function VerifyBattery() {
                                     }}
                                 >
                                     {`当前有：${carNumListLength}个`}
-                                    {cardInfoList.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncCarNum}>自动获取车架号</Button>}
+                                    {cardInfoListFilter.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncCarNum}>自动获取车架号</Button>}
                                     <Button sx={{ ml: 'auto' }} onClick={importCarNum}>
                                         <label htmlFor="file-upload">
                                             导入车架号
@@ -450,7 +513,7 @@ function VerifyBattery() {
                                     }}
                                 >
                                     {`当前有：${batteryNoListLength}个`}
-                                    {batteryList.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncBatteryNo}>自动获取电池码</Button>}
+                                    {batteryListFilter.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncBatteryNo}>自动获取电池码</Button>}
                                     <Button sx={{ ml: 'auto' }} onClick={importBatteryNo}>
                                         <label htmlFor="file-upload">
                                             导入电池码
@@ -464,24 +527,31 @@ function VerifyBattery() {
                         />
                     </FormControl>
                 </Stack>
-            </form>
-            <Stack spacing={1} direction="row">
-                <Button
-                    sx={{
-                        mt: 'var(--Card-paddingBlock)',
-                    }}
-                    onClick={() => verifyStart()}
-                    disabled={!carNumListStr || !batteryNoListStr}
-                    color="primary"
-                    loading={loading}
-                >验证</Button>
-                <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
-                <Stack spacing={10} direction='row'>
-                    <span>当前有效数量： {validBattery.length}</span>
-                    <span>当前无效数量： {errNum}</span>
-                    <span>当前未匹配数量： {errMapping}</span>
+
+                <Stack spacing={1} direction="row" sx={{ pt: 2 }}>
+                    <Select name="isFlag" sx={{ flex: 1 }} defaultValue={'1'}>
+                        <Option value="1">非铅酸</Option>
+                        <Option value="2">铅酸</Option>
+                    </Select>
+
+                    <Button
+                        sx={{
+                            mt: 2,
+                            flex: 1
+                        }}
+                        disabled={!carNumListStr || !batteryNoListStr}
+                        color="primary"
+                        type='submit'
+                        loading={loading}
+                    >验证</Button>
+                    <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
+                    <Stack spacing={10} direction='row'>
+                        <span>当前有效数量： {validBattery.length}</span>
+                        <span>当前无效数量： {errNum}</span>
+                        <span>当前未匹配数量： {errMapping}</span>
+                    </Stack>
                 </Stack>
-            </Stack>
+            </form>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
                 <ListTable<ValidBatteryListItem> data={validBattery} columns={columns} />
             </Box>

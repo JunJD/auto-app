@@ -4,6 +4,7 @@ import appStorage from "@/utils/appStorage";
 import { createContext, useEffect, useRef, useState } from "react"
 import * as CryptoJS from 'crypto'
 import { Button, Input, Stack } from "@mui/joy";
+import Login from "@/components/login";
 interface Row {
     deviceId: string;
     enabled: boolean;
@@ -44,7 +45,6 @@ export default function AuthProvider({
         const d = devices.find((device) => {
             return (deviceId ?? appStorage.getItem("deviceId")) === device.deviceId && device.enabled
         })
-        console.log(d, 'd')
         if (!d) {
             setDeviceId(appStorage.getItem("deviceId") ?? '')
         } else {
@@ -60,15 +60,17 @@ export default function AuthProvider({
         const result = await response.json()
         if (result.code === 0) {
             setDevices(result.devices)
-            setDevices(result.devices);
         }
     }
 
-    async function autoLogin() {
-        const md5Hash = CryptoJS.createHash('md5').update("zhou200266..").digest('hex');
+    async function autoLogin(
+        usercode: string = localStorage.getItem('usercode') ?? '城南浩子2',
+        password: string = localStorage.getItem('password') ?? "zhou200266.."
+    ) {
+        const md5Hash = CryptoJS.createHash('md5').update(password).digest('hex');
         const response = await fetch('https://autoappzhouer.dingjunjie.com/api/login', {
             method: "POST",
-            body: JSON.stringify({ usercode: '城南浩子', password: md5Hash }),
+            body: JSON.stringify({ usercode, password: md5Hash }),
         })
         const result = await response.json()
         if (result.code === 0) {
@@ -79,6 +81,13 @@ export default function AuthProvider({
     function _setToken(token: string) {
         appStorage.setItem("token", token)
         setToken(token)
+    }
+
+    function onSubmit({
+        usercode,
+        password,
+    }: any) {
+        autoLogin(usercode, password)  
     }
 
     if (!deviceId) return (
@@ -99,6 +108,11 @@ export default function AuthProvider({
         </>
     )
 
+    if(!token) {
+        return (
+            <Login onSubmit={onSubmit}/>
+        )
+    }
 
     return (
         <AuthContext.Provider value={{ token, setToken: _setToken }}>

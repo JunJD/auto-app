@@ -7,10 +7,10 @@ export interface CarListItem {
     value: string,
     status: string,
     battery_model?: string, //电池型号
-    battery_type: string, // 电池类型
-    bfn_or_oe: string, // 电池品牌
+    battery_type?: string, // 电池类型
+    bfn_or_oe?: string, // 电池品牌
     brand?: string //中文品牌
-    batteryCapacity: string, // 电池容量
+    batteryCapacity?: string, // 电池容量
     
     // battery_num
     battery_num?: string, // 电池编号
@@ -20,10 +20,10 @@ export interface BatteryListItem {
     value: string, // qydcbm
     status: string,
     battery_model?: string, //电池型号 dcxh
-    battery_type: string, // 电池类型 dclx
-    bfn_or_oe: string, // 电池品牌 // dcpp
+    battery_type?: string, // 电池类型 dclx
+    bfn_or_oe?: string, // 电池品牌 // dcpp
     // dcrl 电池容量
-    batteryCapacity: string
+    batteryCapacity?: string
 }
 
 export const InfoContext = createContext<
@@ -92,13 +92,7 @@ export default function InfoProvider({
         if (typeof payload === 'function') {
             setBatteryListItem(prev => {
                 const _list = payload(prev)
-                // 去重复
-                const list = _list.filter((item, index, arr) => {
-                    return arr.findIndex(t => t.value === item.value) === index
-                })
-                console.log('去重复 list', list)
-                appStorage.setItem("batteryListItem", JSON.stringify(list))
-                return list
+                return _list
             })
 
         } else {

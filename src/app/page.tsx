@@ -8,6 +8,7 @@ import TabPanel from '@mui/joy/TabPanel';
 import CardNum from '@/components/CardNum';
 import BatteryNo from '@/components/BatteryNo';
 import VerifyBattery from '@/components/VerifyBattery';
+import Login from '@/components/login';
 
 export default function TabsFlex() {
   return (
@@ -17,6 +18,7 @@ export default function TabsFlex() {
           <Tab>查询及过滤车架号</Tab>
           <Tab>查询及过滤电池码</Tab>
           <Tab>绑定测试电池有效性</Tab>
+          <Tab>修改账号和密码</Tab>
         </TabList>
         <TabPanel value={0} sx={{ overflowY: "hidden" }}>
           <CardNum />
@@ -26,6 +28,9 @@ export default function TabsFlex() {
         </TabPanel>
         <TabPanel value={2} sx={{ overflowY: "hidden" }}>
           <VerifyBattery/>
+        </TabPanel>
+        <TabPanel value={3} sx={{ overflowY: "hidden" }}>
+          <Login/>
         </TabPanel>
       </Tabs>
     </Stack>

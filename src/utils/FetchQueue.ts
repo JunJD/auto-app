@@ -15,8 +15,11 @@ export class FetchQueue {
         const controller = new AbortController();
 
         return new Promise((resolve, reject) => {
-            this.queue.push({ fetchPromise, resolve, reject, controller, priority });
-            this.queue.sort((a, b) => b.priority - a.priority); // 根据优先级排序，优先级高的在前
+            if(priority === 1) {
+                this.queue.push({ fetchPromise, resolve, reject, controller, priority });
+            } else if(priority === 2) {
+                this.queue.unshift({ fetchPromise, resolve, reject, controller, priority });
+            } 
             this.processQueue();
         });
     }
@@ -62,7 +65,7 @@ export class FetchQueue {
 
 const fetchQueue = new FetchQueue(13);
 
-export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 0): Promise<Response> {
+export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response> {
     return fetchQueue.enqueue((controller) => {
         const config = { ...init, signal: controller.signal };
         return fetch(input, config);

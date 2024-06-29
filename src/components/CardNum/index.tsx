@@ -12,7 +12,7 @@ import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { CarListItem, InfoContext } from "@/provider/InfoProvider";
-import { pauseFetchQueue, customFetch as fetch } from '@/utils/FetchQueue';
+import { pauseFetchQueue, customFetch as fetch, fetchBashUrlList } from '@/utils/FetchQueue';
 
 const columns: any = [
     { key: 'value', label: '车架号' },
@@ -74,7 +74,7 @@ export default function CardNum() {
         if (_isGarbled === "1") {
             // 校验是否为纯数字
             const regex = /^\d+$/;
-            if (!regex.test(value)) {
+            if (!regex.test(value) && value) {
                 return;
             }
         }
@@ -82,7 +82,7 @@ export default function CardNum() {
         if (_isGarbled === "2") {
             // 校验是否为纯字母
             const regex = /^[a-zA-Z]+$/;
-            if (!regex.test(value)) {
+            if (!regex.test(value) && value) {
                 return;
             }
         }
@@ -90,7 +90,7 @@ export default function CardNum() {
         if (_isGarbled === "3") {
             // 校验是否为纯字母数字
             const regex = /^[a-zA-Z0-9]+$/;
-            if (!regex.test(value)) {
+            if (!regex.test(value) && value) {
                 return;
             }
         }
@@ -119,7 +119,7 @@ export default function CardNum() {
         setIsGarbled(newValue);
         setTimeout(() => {
             if (newValue === '2') {
-                handleStartComplement('aaaa', newValue);
+                handleStartComplement('AAAA', newValue);
             } else if (newValue === "1") {
                 handleStartComplement('0000', newValue);
             }
@@ -132,6 +132,7 @@ export default function CardNum() {
         setLoading(true)
         const formData = new FormData(event.currentTarget);
 
+        const isFlag = formData.get('isFlag') as string;
         const carNumber = formData.get('carNumber') as string;
         const isGarbled = formData.get('isGarbled') as string;
         const startComplement = formData.get('startComplement') as string;
@@ -151,79 +152,122 @@ export default function CardNum() {
         let currentString = startComplement;
 
         setCardInfoList([])
+
         const resolveList: Promise<CarListItem | null>[] = []
+
+        const list = []
+
         for (const _ of Array.from({ length: Number(exhaustiveQuantity) }).fill(0)) {
+            const leftV = carNumber?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
+            const rightV = carNumber?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
+            let current = ''
+            switch (isGarbled) {
+                case "1":
+                    current = incrementNumberString(currentString) ?? ''
+                    break;
+                case "2":
+                    current = incrementAlphaString(currentString) ?? ''
+                    break;
+                default:
+                    current = incrementAlphaNumericString(currentString) ?? '';
+                    break;
+            }
+
+            if (current) {
+                currentString = current
+                const item = `${leftV}${currentString}${rightV}`
+                list.push(item)
+            } else {
+                break
+            }
+        }
+
+        for (const item of list) {
             resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
                 try {
-                    const leftV = carNumber?.slice(0, Number(startPosition) + 1).replace(/\s/g, '');
-                    const rightV = carNumber?.slice(Number(startPosition) + 1 + startComplement.length).replace(/\s/g, '');
-                    switch (isGarbled) {
-                        case "1":
-                            currentString = incrementNumberString(currentString)
-                            break;
-                        case "2":
-                            currentString = incrementAlphaString(currentString)
-                            break;
-                        default:
-                            currentString = incrementAlphaNumericString(currentString);
-                            break;
+                    let result = await getCardNumFetch(item, isFlag==="1")
+                    let current: CarListItem = {
+                        status: 'pending',
+                        value: item,
                     }
-                    const item = `${leftV}${currentString}${rightV}`
 
-                    let result = await getCardNumFetch(item)
-
-                    if (!result) {
+                    if (result.code !== 0) {
+                        current = {
+                            status: result.msg ?? '校验没通过',
+                            value: item,
+                        }
+                        setCardInfoList((prev: CarListItem[]) => {
+                            return [current, ...prev]
+                        })
                         setNumber(prev => prev + 1)
-                        resolve(null)
+                        resolve(current)
                         return
                     }
 
-                    const current = {
+                    current = {
                         value: item,
                         status: 'success',
                         // batteryModel: dcxh,
-                        battery_type: result.dclx,
-                        bfn_or_oe: result.dcpp,
-                        brand: result.zwpp,
-                        batteryCapacity: result.dcrl,
-                        batteryNum: result.batteryNum,
+                        battery_type: result.data.dclx,
+                        bfn_or_oe: result.data.dcpp,
+                        brand: result.data.zwpp,
+                        batteryCapacity: result.data.dcrl,
+                        battery_num: result.data.batteryNum,
                     }
 
                     setCardInfoList((prev: CarListItem[]) => {
-                        return [...prev, current]
+                        return [current, ...prev]
                     })
                     cacheData.current.push(current)
                     resolve(current)
-                    result = null
                 } catch (error) {
+                    const current = {
+                        status: '超时或者取消了',
+                        value: item,
+                    }
+                    setCardInfoList((prev: CarListItem[]) => {
+                        return [current, ...prev]
+                    })
                     resolve(null)
                 }
             }))
         }
-
         await Promise.all(resolveList)
-
-        invoke('my_generate_excel_command', {
-            tableData: {
-                data: cacheData.current,
-                columns
-            },
-            folderNameString: '车架号',
-            xlsxFilePathString: '车架号'
-        }).finally(() => {
+        if (cacheData.current.length) {
+            invoke('my_generate_excel_command', {
+                tableData: {
+                    data: cacheData.current,
+                    columns
+                },
+                folderNameString: '车架号',
+                xlsxFilePathString: '车架号'
+            }).finally(() => {
+                setLoading(false)
+            })
+        } else {
             setLoading(false)
-        })
+        }
     }
 
+    const baseUrlIndex = useRef(0)
+    function getBaseUrl() {
+        if (baseUrlIndex.current >= fetchBashUrlList.length) {
+            baseUrlIndex.current = 0
+        }
+        return fetchBashUrlList[baseUrlIndex.current++]
+    }
+    
+    async function getCardNumFetch(item: string, flag: boolean) {
 
-    async function getCardNumFetch(item: string) {
-        const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getCarNum', {
+        const baseUrl = getBaseUrl()
+        
+        const response = await fetch(`${baseUrl}/api/getCarNum`, {
             method: "POST",
             body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
         }, 1)
         const result = await response.json()
 
-        if (result.code === 0) {
+        if (result.code === 0 && flag) {
             try {
                 const response = await fetch(`https://www.pzcode.cn/vin/${item}`, {
                     redirect: 'follow'
@@ -239,12 +283,12 @@ export default function CardNum() {
                 const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it => it && it?.includes('电池编号'));
                 const batteryNum = innerTexts[0]?.replace(/\s+/g, ' ')
 
-                return { ...result.data, batteryNum }
+                return { ...result, data: { ...result.data, batteryNum }  }
             } catch (error) {
-                return result.data
+                return { ...result, msg: `网址访问失败 https://www.pzcode.cn/vin/${item} `, code: 1 }
             }
         }
-        return null
+        return result
     }
 
     return (
@@ -261,14 +305,17 @@ export default function CardNum() {
                                 handleStartPosition("")
                                 handleStartComplement('')
                             }} sx={{ flex: 1 }} />
-                        {/* <FormLabel>品牌号</FormLabel> */}
-                        {/* <Input name="carBrand" sx={{ flex: 1 }} /> */}
+                            <FormLabel>是否找电池码</FormLabel>
+                            <Select name="isFlag" sx={{ flex: 1 }} defaultValue={'1'}>
+                                <Option value="1">需要</Option>
+                                <Option value="2">不需要</Option>
+                            </Select>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <FormLabel>开始位置</FormLabel>
                         <Input required name="startPosition" value={startPosition} onChange={(e) => handleStartPosition(e.target.value)} sx={{ flex: 1 }} />
                         <FormLabel>补充码类型</FormLabel>
-                        <Select value={isGarbled} onChange={handleSelectChange}>
+                        <Select name="isGarbled" value={isGarbled} onChange={handleSelectChange}>
                             <Option value="1">顺码</Option>
                             <Option value="2">乱码</Option>
                             <Option value="3">随机</Option>
@@ -282,14 +329,14 @@ export default function CardNum() {
                         <Button type="submit" loading={loading}>开始运行</Button>
                         <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
                         <Stack spacing={10} direction='row'>
-                            <span>当前有效数量： {cardInfoList.length}</span>
+                            <span>当前有效数量： {cardInfoList.filter(it => it.status === 'success').length}</span>
                             <span>当前无效数量： {errNum}</span>
                         </Stack>
                     </Box>
                 </Stack>
             </form>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <ListTable<CarListItem> data={cardInfoList} columns={columns} />
+                <ListTable<CarListItem> data={cardInfoList} columns={[...columns, { key: 'status', label: '状态' }]} />
             </Box>
         </Stack>
     )
