@@ -20,7 +20,8 @@ import Option from '@mui/joy/Option';
 
 interface ValidBatteryListItem {
     value: string,
-    key: string
+    key: string,
+    status?: string,
 }
 
 const columns: any = [
@@ -139,19 +140,19 @@ function VerifyBattery() {
         const resolveList: Promise<any>[] = []
         batteryMap.forEach((value, key) => {
             resolveList.push(new Promise(async (resolve) => {
-
-                if (carNumMap.has(key)) {
+                const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
+                if (carNumMap.has(key) && key !== '未知-未知-未知') {
                     const keyItem = key.split('-')
                     const batteryType = keyItem[2]
                     if (batteryType === '铅酸') {
                         try {
-                            resolve(await verifyForQS([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []]!, key))
+                            resolve(await verifyForQS([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []]!, key, retryCounts))
                         } finally {
                             resolve(null)
                         }
                     } else {
                         try {
-                            resolve(await verifyForLD([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []], key))
+                            resolve(await verifyForLD([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []], key, retryCounts))
                         } finally {
                             resolve(null)
                         }
@@ -161,13 +162,13 @@ function VerifyBattery() {
                     const allCarNums = Array.from(carNumMap.values()).flat()
                     if (isFlag === '2') {
                         try {
-                            resolve(await verifyForQS([...value], allCarNums, key))
+                            resolve(await verifyForQS([...value], allCarNums, key, retryCounts))
                         } finally {
                             resolve(null)
                         }
                     } else {
                         try {
-                            resolve(await verifyForLD([...value], allCarNums, key))
+                            resolve(await verifyForLD([...value], allCarNums, key, retryCounts))
                         } finally {
                             resolve(null)
                         }
@@ -205,12 +206,11 @@ function VerifyBattery() {
         }
     }
 
-    const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[], key: string) => {
+    const verifyForQS = async (batterys: BatteryListItem['value'][], carNums: string[], key: string, retryCounts: Record<string, number>, retryLimit = 10) => {
         // carNums 组成2维数组，四个为一组，最后一组不够的向前面的借
         const groupNum: number = 4
         // const resultList: string[] = []
-        const retryLimit = 10; // 设置最大重试次数
-        const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
+        
         const dcbhurlList: string[][] = []
         for (let i = 0; i < batterys.length; i += groupNum) {
             const group = batterys.slice(i, i + groupNum)
@@ -219,16 +219,11 @@ function VerifyBattery() {
             }
             dcbhurlList.push(group)
         }
-        while (dcbhurlList.length > 0) {
-            if (pauseRef.current) {
-                pauseRef.current = false
-                break
-            }
+
+        await Promise.all(dcbhurlList.map(async (dcbhurl) => {
             try {
-                const dcbhurl = dcbhurlList.shift()
-                if (!dcbhurl) {
-                    setNumber(prev => prev + 1)
-                    continue
+                if (!dcbhurl) {                    
+                    return
                 }
                 const baseUrl = getBaseUrl()
                 const response = await fetch(`${baseUrl}/api/verifyBattery`, {
@@ -248,7 +243,7 @@ function VerifyBattery() {
                 await delay(1000)
                 if (result.code === 0) {
                     cacheData.current.push(...(dcbhurl.map(it => ({ value: it, key }))))
-                    setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key }))].filter((item, index) => {
+                    setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: 'success' }))].filter((item, index) => {
                         const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
                         if (findIndex === -1) return true
                         return findIndex === index
@@ -262,32 +257,32 @@ function VerifyBattery() {
                     if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
 
                         await delay(1000)
-                        dcbhurlList.push(dcbhurl!)
+                        await verifyForQS(dcbhurl!, carNums, key, retryCounts, retryLimit - 1)
                     } else {
-                        setNumber(prev => prev + 1)
+                        setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: result.msg }))])
+                        setNumber(prev => prev + dcbhurl.length)
                     }
 
+                } else {
+                    setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: result.msg ?? '未绑定成功' }))])
+                    setNumber(prev => prev + dcbhurl.length)
                 }
             } catch (error) {
-                continue
+                setValidBattery(prev => [...prev, ...dcbhurl!.map(it => ({ value: it, key, status: '超时或者取消了' }))])
+                setNumber(prev => prev + dcbhurl.length)
             }
-        }
+        }))
     }
 
-    const verifyForLD = async (batterys: BatteryListItem['value'][], carNums: string[], key: string) => {
-        const retryLimit = 10; // 设置最大重试次数
-        const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
-        while (batterys.length > 0) {
-            if (pauseRef.current) {
-                pauseRef.current = false
-                break
-            }
+    const verifyForLD = async (batterys: BatteryListItem['value'][], carNums: string[], key: string, retryCounts: Record<string, number>, retryLimit = 10) => {
+        pauseRef.current = false
+
+        await Promise.all(batterys.map(async (battery) => {
             try {
-                const battery = batterys.shift()
                 const redoBattery = validBattery.find(item => item.value === battery)
                 if (redoBattery) {
                     setNumber(prev => prev + 1)
-                    continue
+                    return
                 }
                 const baseUrl = getBaseUrl()
                 const response = await fetch(`${baseUrl}/api/verifyBattery`, {
@@ -302,10 +297,9 @@ function VerifyBattery() {
                     },
                 })
                 const result = await response.json()
-                await delay(1000)
                 if (result.code === 0) {
                     cacheData.current.push({ value: battery!, key })
-                    setValidBattery(prev => [...prev, { value: battery!, key }].filter((item, index) => {
+                    setValidBattery(prev => [{ value: battery!, key, status: 'success' }, ...prev].filter((item, index) => {
                         const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
                         if (findIndex === -1) return true
                         return findIndex === index
@@ -319,15 +313,26 @@ function VerifyBattery() {
 
                     if (retryCounts[battery!] < retryLimit) {
                         await delay(1000);
-                        batterys.push(battery!);
+                        await verifyForLD([battery], carNums, key, retryCounts, retryLimit - 1)
                     } else {
+                        setValidBattery((prev) => {
+                            return [{ value: battery!, key, status: result.msg }, ...prev]
+                        })
                         setNumber(prev => prev + 1)
                     }
+                } else {
+                    setValidBattery((prev) => {
+                        return [{ value: battery!, key, status: result.msg ?? '未绑定成功' }, ...prev]
+                    })
+                    setNumber(prev => prev + 1)
                 }
             } catch (error) {
-                continue
+                setValidBattery((prev) => {
+                    return [{ value: battery!, key, status: '超时或者取消了' }, ...prev]
+                })
+                setNumber(prev => prev + 1)
             }
-        }
+        }))
     }
 
     const getCjhUrlByCarNums = (numList: string[]) => {
@@ -480,7 +485,7 @@ function VerifyBattery() {
                                     }}
                                 >
                                     {`当前有：${carNumListLength}个`}
-                                    {cardInfoListFilter.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncCarNum}>自动获取车架号</Button>}
+                                    {!!cardInfoListFilter.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncCarNum}>自动获取车架号</Button>}
                                     <Button sx={{ ml: 'auto' }} onClick={importCarNum}>
                                         <label htmlFor="file-upload">
                                             导入车架号
@@ -513,7 +518,7 @@ function VerifyBattery() {
                                     }}
                                 >
                                     {`当前有：${batteryNoListLength}个`}
-                                    {batteryListFilter.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncBatteryNo}>自动获取电池码</Button>}
+                                    {!!batteryListFilter.length && <Button sx={{ ml: 'auto' }} onClick={autoSyncBatteryNo}>自动获取电池码</Button>}
                                     <Button sx={{ ml: 'auto' }} onClick={importBatteryNo}>
                                         <label htmlFor="file-upload">
                                             导入电池码
@@ -546,14 +551,14 @@ function VerifyBattery() {
                     >验证</Button>
                     <Button onClick={pause} disabled={!loading}>暂停当前运行</Button>
                     <Stack spacing={10} direction='row'>
-                        <span>当前有效数量： {validBattery.length}</span>
+                        <span>当前有效数量： {validBattery.filter(it => it.status === 'success').length}</span>
                         <span>当前无效数量： {errNum}</span>
                         <span>当前未匹配数量： {errMapping}</span>
                     </Stack>
                 </Stack>
             </form>
             <Box sx={{ flex: 1, overflow: 'auto' }}>
-                <ListTable<ValidBatteryListItem> data={validBattery} columns={columns} />
+                <ListTable<ValidBatteryListItem> data={validBattery} columns={[...columns, { key: 'status', label: '状态' }]} />
             </Box>
         </Stack>
     );

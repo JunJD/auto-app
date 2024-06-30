@@ -63,7 +63,7 @@ export class FetchQueue {
     // }
 }
 
-const fetchQueue = new FetchQueue(13);
+const fetchQueue = new FetchQueue(8);
 
 export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response> {
     return fetchQueue.enqueue((controller) => {

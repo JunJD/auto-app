@@ -143,7 +143,7 @@ export default function BatteryNo() {
 
         const concurrency = Number(formData.get('concurrency')) as number;
 
-        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * fetchBashUrlList.length);
+        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * Math.floor(fetchBashUrlList.length / 2));
         fetchRef.current = (input: RequestInfo, init?: RequestInit, priority: number = 0) => {
             return fetchQueue.enqueue((controller) => {
                 const config = { ...init, signal: controller.signal };
@@ -335,7 +335,7 @@ export default function BatteryNo() {
                         <FormLabel>开始位置</FormLabel>
                         <Input required name="startPosition" value={startPosition} onChange={(e) => handleStartPosition(e.target.value)} sx={{ flex: 1 }} />
                         <FormLabel>补充码类型</FormLabel>
-                        <Select value={isGarbled} onChange={handleSelectChange}>
+                        <Select name="isGarbled" value={isGarbled} onChange={handleSelectChange}>
                             <Option value="1">顺码</Option>
                             <Option value="2">乱码</Option>
                             <Option value="3">随机</Option>
