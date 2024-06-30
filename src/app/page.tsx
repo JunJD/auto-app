@@ -9,6 +9,7 @@ import CardNum from '@/components/CardNum';
 import BatteryNo from '@/components/BatteryNo';
 import VerifyBattery from '@/components/VerifyBattery';
 import Login from '@/components/login';
+import BatteryNo2 from '@/components/BatteryNo2';
 
 export default function TabsFlex() {
   return (
@@ -17,6 +18,7 @@ export default function TabsFlex() {
         <TabList tabFlex="auto">
           <Tab>查询及过滤车架号</Tab>
           <Tab>查询及过滤电池码</Tab>
+          <Tab>查询及过滤电池码【特殊】</Tab>
           <Tab>绑定测试电池有效性</Tab>
           <Tab>修改账号和密码</Tab>
         </TabList>
@@ -27,9 +29,12 @@ export default function TabsFlex() {
           <BatteryNo />
         </TabPanel>
         <TabPanel value={2} sx={{ overflowY: "hidden" }}>
-          <VerifyBattery/>
+          <BatteryNo2 />
         </TabPanel>
         <TabPanel value={3} sx={{ overflowY: "hidden" }}>
+          <VerifyBattery/>
+        </TabPanel>
+        <TabPanel value={4} sx={{ overflowY: "hidden" }}>
           <Login/>
         </TabPanel>
       </Tabs>

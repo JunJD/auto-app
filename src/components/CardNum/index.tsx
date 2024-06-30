@@ -39,7 +39,12 @@ export default function CardNum() {
             invoke('my_generate_excel_command', {
                 tableData: {
                     data: cacheData.current,
-                    columns
+                    columns: [
+                        ...columns,
+                        { key: 'dcscqy', label: '蓄电池生产企业' },
+                        { key: 'dcxh', label: '蓄电池型号' },
+                        { key: 'cjsj', label: '生产日期' },
+                    ]
                 },
                 folderNameString: '车架号',
                 xlsxFilePathString: '车架号'
@@ -205,6 +210,7 @@ export default function CardNum() {
                     }
 
                     current = {
+                        ...result.data,
                         value: item,
                         status: 'success',
                         // batteryModel: dcxh,
@@ -237,7 +243,12 @@ export default function CardNum() {
             invoke('my_generate_excel_command', {
                 tableData: {
                     data: cacheData.current,
-                    columns
+                    columns: [
+                        ...columns,
+                        { key: 'dcscqy', label: '蓄电池生产企业' },
+                        { key: 'dcxh', label: '蓄电池型号' },
+                        { key: 'cjsj', label: '生产日期' },
+                    ]
                 },
                 folderNameString: '车架号',
                 xlsxFilePathString: '车架号'

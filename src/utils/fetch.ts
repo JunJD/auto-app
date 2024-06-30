@@ -9,7 +9,7 @@ export const fetchD = async () => {
 
 export const delay = (ms: number) => {
     return new Promise(resolve => {
-        setTimeout(()=>{
+        setTimeout(() => {
             resolve(ms)
         }, ms)
     })
@@ -41,10 +41,10 @@ export const incrementNumberString = (str: string): string | null => {
     if (/^9+$/.test(str)) {
         return null;
     }
-    
+
     let num = parseInt(str, 10);
     num += 1;
-    
+
     // 将数字重新格式化为与原始字符串相同的长度
     let incrementedStr = num.toString();
     while (incrementedStr.length < str.length) {
@@ -58,39 +58,34 @@ export const incrementNumberString = (str: string): string | null => {
 
 
 // 数字和字母混合递增
-export const incrementAlphaNumericString = (str: string): string | null => {
-    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const charsLength = chars.length;
+export const incrementAlphaNumericString = (str: string): string => {
+    const length = str.length;
     let carry = 1;
     let result = '';
 
-    for (let i = str.length - 1; i >= 0; i--) {
+    for (let i = length - 1; i >= 0; i--) {
         const currentChar = str[i];
-        const currentIndex = chars.indexOf(currentChar);
+        let newChar = '';
 
-        if (currentIndex === -1) {
+        if (/\d/.test(currentChar)) { // 当前字符是数字
+            let newDigit = (parseInt(currentChar) + carry) % 10;
+            carry = (parseInt(currentChar) + carry) >= 10 ? 1 : 0;
+            newChar = newDigit.toString();
+        } else if (/[A-Z]/.test(currentChar)) { // 当前字符是大写字母
+            let newIndex = (currentChar.charCodeAt(0) - 'A'.charCodeAt(0) + carry) % 26;
+            carry = (currentChar.charCodeAt(0) - 'A'.charCodeAt(0) + carry) >= 26 ? 1 : 0;
+            newChar = String.fromCharCode('A'.charCodeAt(0) + newIndex);
+        } else {
             throw new Error('Invalid character in input string');
         }
 
-        let newIndex = currentIndex + carry;
-        if (newIndex >= charsLength) {
-            newIndex = newIndex % charsLength;
-            carry = 1;
-        } else {
-            carry = 0;
-        }
-
-        result = chars[newIndex] + result;
+        result = newChar + result;
     }
 
     if (carry > 0) {
         result = '1' + result;
     }
 
-    // 如果输入字符串是全部由'Z'组成的
-    if (/^Z+$/.test(str)) {
-        return null;
-    }
-
     return result;
 }
+
