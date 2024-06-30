@@ -326,6 +326,7 @@ export default function BatteryNo() {
                             continue
                         }
                     } else {
+                        resolve(null)
                         break
                     }
                 } while (!pauseWhileRef.current);
