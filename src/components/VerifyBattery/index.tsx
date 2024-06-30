@@ -141,19 +141,19 @@ function VerifyBattery() {
         batteryMap.forEach((value, key) => {
             resolveList.push(new Promise(async (resolve) => {
                 const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
-                if (carNumMap.has(key) && key !== '未知-未知-未知') {
+                if (key !== '未知-未知-未知') {
                     const keyItem = key.split('-')
                     const batteryType = keyItem[2]
                     if (batteryType === '铅酸') {
                         try {
-                            resolve(await verifyForQS([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []]!, key, retryCounts))
-                        } finally {
+                            resolve(await verifyForQS([...value], [...(carNumMap.has(key) ? carNumMap.get(key)!: []), ...carNumMap.get("未知-未知-未知") ?? []]!, key, retryCounts))
+                        } catch {
                             resolve(null)
                         }
                     } else {
                         try {
-                            resolve(await verifyForLD([...value], [...carNumMap.get(key) ?? [], ...carNumMap.get("未知-未知-未知") ?? []], key, retryCounts))
-                        } finally {
+                            resolve(await verifyForLD([...value], [...(carNumMap.has(key) ? carNumMap.get(key)!: []), ...carNumMap.get("未知-未知-未知") ?? []], key, retryCounts))
+                        } catch {
                             resolve(null)
                         }
                     }
@@ -163,13 +163,13 @@ function VerifyBattery() {
                     if (isFlag === '2') {
                         try {
                             resolve(await verifyForQS([...value], allCarNums, key, retryCounts))
-                        } finally {
+                        } catch {
                             resolve(null)
                         }
                     } else {
                         try {
                             resolve(await verifyForLD([...value], allCarNums, key, retryCounts))
-                        } finally {
+                        } catch {
                             resolve(null)
                         }
                     }
@@ -255,14 +255,12 @@ function VerifyBattery() {
                     retryCounts[dcbhurl.join("|")!]++;
 
                     if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
-
                         await delay(1000)
                         await verifyForQS(dcbhurl!, carNums, key, retryCounts, retryLimit - 1)
                     } else {
                         setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: result.msg }))])
                         setNumber(prev => prev + dcbhurl.length)
                     }
-
                 } else {
                     setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: result.msg ?? '未绑定成功' }))])
                     setNumber(prev => prev + dcbhurl.length)
