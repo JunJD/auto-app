@@ -222,7 +222,7 @@ function VerifyBattery() {
 
         await Promise.all(dcbhurlList.map(async (dcbhurl) => {
             try {
-                if (!dcbhurl) {                    
+                if (!dcbhurl) {                
                     return
                 }
                 const baseUrl = getBaseUrl()

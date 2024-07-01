@@ -234,6 +234,7 @@ export default function CardNum() {
                     setCardInfoList((prev: CarListItem[]) => {
                         return [current, ...prev]
                     })
+                    setNumber(prev => prev + 1)
                     resolve(null)
                 }
             }))
