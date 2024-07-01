@@ -49,7 +49,7 @@ pub async fn write_txt(
     result.map_err(|e| format!("Task panicked: {:?}", e))?
 }
 
-pub async fn save_qr_code_with_text(
+pub async fn save_qr_code_with_extended_text(
     content: &str,
     file_lock: Arc<Mutex<()>>,
     path: PathBuf,
@@ -68,7 +68,7 @@ pub async fn save_qr_code_with_text(
         let qr_image = code.render::<Luma<u8>>().build();
 
         // Create a new image with extra space for the text
-        let text_height = 40; // Adjust as necessary
+        let text_height = 90; // Increased height to fit two lines of text
         let width = qr_image.width();
         let height = qr_image.height() + text_height;
         let mut final_image = RgbaImage::new(width, height);
@@ -90,36 +90,24 @@ pub async fn save_qr_code_with_text(
         }
 
         // Load font
-        let font_data = include_bytes!("./DejaVuSerif.ttf");
+        let font_data = include_bytes!("./ZhouZiSongTi7000Zi-2.otf");
         let font = Font::try_from_bytes(font_data as &[u8]).unwrap();
 
         // Draw text below the QR code using default font
         let scale = Scale { x: 20.0, y: 20.0 };
         let text_color = Rgba([0, 0, 0, 255]); // Black text
-        let v_metrics = font.v_metrics(scale);
-        let glyphs: Vec<_> = font.layout(&content, scale, rusttype::point(0.0, v_metrics.ascent)).collect();
+        // Split content into two lines
+        let content_len: usize = content.chars().count();
+        let split_index = (content_len / 3).min(content_len); // Ensure index is within bounds
+        let (first_part, second_part) = content.split_at(split_index);
 
-        // Draw the glyphs with opaque background
-        for glyph in glyphs {
-            if let Some(bounding_box) = glyph.pixel_bounding_box() {
-                glyph.draw(|x, y, v| {
-                    let x = x as i32 + bounding_box.min.x;
-                    let y = y as i32 + bounding_box.min.y + qr_image.height() as i32;
-                    if x >= 0 && x < final_image.width() as i32 && y >= 0 && y < final_image.height() as i32 {
-                        let pixel = final_image.get_pixel_mut(x as u32, y as u32);
-                        let alpha = (v * 255.0) as u8;
-                        let bg_pixel = Rgba([255, 255, 255, 255]); // White background
-                        let text_pixel = Rgba([
-                            text_color[0],
-                            text_color[1],
-                            text_color[2],
-                            alpha,
-                        ]);
-                        *pixel = if alpha > 0 { text_pixel } else { bg_pixel }; // If text pixel has alpha, use text pixel else use background pixel
-                    }
-                });
-            }
-        }
+        // Add "浙品码" to the first line
+        let first_line = format!("浙品码  {}", first_part);
+        let second_line = second_part;
+        
+        
+        draw_text_on_image(&font, scale, &first_line, qr_image.height(), &mut final_image, text_color);
+        draw_text_on_image(&font, scale, second_line, qr_image.height() + 40, &mut final_image, text_color); // Offset by 40 pixels for the second line
 
         // Save the final image to the specified path
         DynamicImage::ImageRgba8(final_image).save(&path)
@@ -129,6 +117,34 @@ pub async fn save_qr_code_with_text(
     })
     .await
     .map_err(|e| format!("Task panicked: {:?}", e))?
+}
+
+// Helper function to draw text on the image
+fn draw_text_on_image(font: &Font, scale: Scale, text: &str, y_offset: u32, image: &mut RgbaImage, text_color: Rgba<u8>) {
+    let v_metrics = font.v_metrics(scale);
+    let glyphs: Vec<_> = font.layout(text, scale, rusttype::point(0.0, v_metrics.ascent)).collect();
+
+    // Draw the glyphs with opaque background
+    for glyph in glyphs {
+        if let Some(bounding_box) = glyph.pixel_bounding_box() {
+            glyph.draw(|x, y, v| {
+                let x = x as i32 + bounding_box.min.x;
+                let y = y as i32 + bounding_box.min.y + y_offset as i32;
+                if x >= 0 && x < image.width() as i32 && y >= 0 && y < image.height() as i32 {
+                    let pixel = image.get_pixel_mut(x as u32, y as u32);
+                    let alpha = (v * 255.0) as u8;
+                    let bg_pixel = Rgba([255, 255, 255, 255]); // White background
+                    let text_pixel = Rgba([
+                        text_color[0],
+                        text_color[1],
+                        text_color[2],
+                        alpha,
+                    ]);
+                    *pixel = if alpha > 0 { text_pixel } else { bg_pixel }; // If text pixel has alpha, use text pixel else use background pixel
+                }
+            });
+        }
+    }
 }
 
 pub async fn save_excel<T: Serialize + Send + 'static>(

@@ -5,7 +5,7 @@
 
 mod write_to_desktop;
 use chrono::Local;
-use write_to_desktop::{save_qr_code_with_text, write_txt, save_excel, ListTableProps};
+use write_to_desktop::{save_qr_code_with_extended_text, write_txt, save_excel, ListTableProps};
 
 use std::path::PathBuf;
 // use std::sync::atomic::{ Ordering};
@@ -57,7 +57,7 @@ async fn find_valid_electro_car_by_ids(array: Vec<String>) -> Result<(), String>
             // value 拼接成url
             const URL: &str = "https://www.pzcode.cn/vin/";
             let url = format!("{}{}", URL, value);
-            let _ = save_qr_code_with_text(&url, file_lock.clone(), qr_code_path.clone()).await;
+            let _ = save_qr_code_with_extended_text(&url, file_lock.clone(), qr_code_path.clone()).await;
             drop(permit);
         });
     }
@@ -103,7 +103,7 @@ async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
             // value 拼接成url
             const URL: &str = "https://www.pzcode.cn/pwb/";
             let url = format!("{}{}", URL, value);
-            let _ = save_qr_code_with_text(&url, file_lock.clone(), qr_code_path.clone()).await;
+            let _ = save_qr_code_with_extended_text(&url, file_lock.clone(), qr_code_path.clone()).await;
             drop(permit);
         });
     }
@@ -198,7 +198,7 @@ async fn my_generate_qrcode_command(
         let task = tokio::spawn(async move {
             let permit = semaphore.acquire().await.unwrap();
             let full_url = format!("{}{}", url_string, cell_value_string);
-            if let Err(e) = save_qr_code_with_text(&full_url, file_lock.clone(), qr_code_path.clone()).await {
+            if let Err(e) = save_qr_code_with_extended_text(&full_url, file_lock.clone(), qr_code_path.clone()).await {
                 eprintln!("Failed to save QR code: {}", e);
             }
             drop(permit);

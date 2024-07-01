@@ -26,7 +26,7 @@ export default function AuthProvider({
     children: React.ReactNode;
 }>) {
     const [token, setToken] = useState<string>(appStorage.getItem("token") || "")
-    const [deviceId, setDeviceId] = useState<string>('')
+    const [deviceId, setDeviceId] = useState<string>(appStorage.getItem("deviceId") || "")
     const [devices, setDevices] = useState<Row[]>([])
     const firstRef = useRef(true)
 
@@ -41,25 +41,24 @@ export default function AuthProvider({
         }
     })
 
-    useEffect(() => {
-        const d = devices.find((device) => {
-            return (deviceId ?? appStorage.getItem("deviceId")) === device.deviceId && device.enabled
-        })
-        if (!d) {
-            setDeviceId(appStorage.getItem("deviceId") ?? '')
-        } else {
-            appStorage.setItem("deviceId", deviceId)
-        }
-    }, [devices, deviceId])
-
     async function getData() {
-        const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
+        const response = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
             // const response = await fetch('/api/devices', {
             method: "GET"
         })
         const result = await response.json()
+        setDevices(result.devices)
         if (result.code === 0) {
-            setDevices(result.devices)
+            const d = result.devices.find((device: any) => {
+                return deviceId === device.deviceId && device.enabled
+            })
+            if (!d) {
+                setDeviceId('')
+                appStorage.setItem("deviceId", '')
+            } else {
+                setDeviceId(deviceId)
+                appStorage.setItem("deviceId", deviceId)
+            }
         }
     }
 
@@ -68,7 +67,7 @@ export default function AuthProvider({
         password: string = localStorage.getItem('password') ?? "zhou200266.."
     ) {
         const md5Hash = CryptoJS.createHash('md5').update(password).digest('hex');
-        const response = await fetch('http://autonginx1.dingjunjie.com/api/login', {
+        const response = await fetch('https://autonginx1.dingjunjie.com/api/login', {
             method: "POST",
             body: JSON.stringify({ usercode, password: md5Hash }),
             headers: {
@@ -100,7 +99,16 @@ export default function AuthProvider({
                     event.preventDefault();
                     const formData = new FormData(event.currentTarget);
                     const deviceId = formData.get("deviceId") as string;
-                    setDeviceId(deviceId)
+                    const d = devices.find((device: any) => {
+                        return deviceId === device.deviceId && device.enabled
+                    })
+                    if (!d) {
+                        setDeviceId('')
+                        appStorage.setItem("deviceId", '')
+                    } else {
+                        setDeviceId(deviceId)
+                        appStorage.setItem("deviceId", deviceId)
+                    }
                 }}
             >
                 <Stack spacing={1}>
