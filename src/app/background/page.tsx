@@ -13,9 +13,12 @@ interface Row {
   enabled: boolean;
 }
 async function createData(deviceId: string, enabled: boolean) {
-  const response = await fetch('/api/devices', {
+  const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
     method: "POST",
     body: JSON.stringify({ deviceId: deviceId, enabled: enabled }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
   const result = await response.json()
   if (result.code === 0) {
@@ -25,9 +28,12 @@ async function createData(deviceId: string, enabled: boolean) {
   return null;
 }
 async function updateData(deviceId: string, enabled: boolean) {
-  const response = await fetch('/api/devices', {
+  const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
     method: "PUT",
     body: JSON.stringify({ deviceId: deviceId, enabled: enabled }),
+    headers: {
+      'Content-Type': 'application/json'
+    }
   })
   const result = await response.json()
   if (result.code === 0) {
@@ -36,7 +42,7 @@ async function updateData(deviceId: string, enabled: boolean) {
   return null;
 }
 async function getData() {
-  const response = await fetch('/api/devices', {
+  const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
     method: "GET"
   })
   const result = await response.json()
