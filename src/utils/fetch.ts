@@ -50,7 +50,6 @@ export const incrementNumberString = (str: string): string | null => {
     while (incrementedStr.length < str.length) {
         incrementedStr = '0' + incrementedStr;
     }
-    console.log(incrementedStr, 'incrementedStr')
     return incrementedStr;
 }
 

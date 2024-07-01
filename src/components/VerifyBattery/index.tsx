@@ -429,7 +429,7 @@ function VerifyBattery() {
         setCarNumListStr(value)
 
         // const reoslves = (await Promise.all(_list.map(async (item) => {
-        //     const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getCarNum', {
+        //     const response = await fetch('http://autonginx1.dingjunjie.com/api/getCarNum', {
         //         method: "POST",
         //         body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
         //     }, 1)

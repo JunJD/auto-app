@@ -53,7 +53,7 @@ export default function AuthProvider({
     }, [devices, deviceId])
 
     async function getData() {
-        const response = await fetch('https://autoappzhouer.dingjunjie.com/api/devices', {
+        const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
             // const response = await fetch('/api/devices', {
             method: "GET"
         })
@@ -68,9 +68,12 @@ export default function AuthProvider({
         password: string = localStorage.getItem('password') ?? "zhou200266.."
     ) {
         const md5Hash = CryptoJS.createHash('md5').update(password).digest('hex');
-        const response = await fetch('https://autoappzhouer.dingjunjie.com/api/login', {
+        const response = await fetch('http://autonginx1.dingjunjie.com/api/login', {
             method: "POST",
             body: JSON.stringify({ usercode, password: md5Hash }),
+            headers: {
+                "Content-Type": "application/json"
+            }
         })
         const result = await response.json()
         if (result.code === 0) {

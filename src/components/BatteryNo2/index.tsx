@@ -188,7 +188,7 @@ export default function BatteryNo() {
 
         const concurrency = Number(formData.get('concurrency')) as number;
 
-        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * Math.floor(fetchBashUrlList.length / 2));
+        const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * Math.max(fetchBashUrlList.length, 1) );
         fetchRef.current = (input: RequestInfo, init?: RequestInit, priority: number = 0) => {
             return fetchQueue.enqueue((controller) => {
                 const config = { ...init, signal: controller.signal };
@@ -370,6 +370,9 @@ export default function BatteryNo() {
         const response = await fetchRef.current(`${baseUrl}/api/getBatteryInfo`, {
             method: "POST",
             body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
+            headers: {
+                "Content-Type": "application/json",
+            },
         }, 1)
         const result = await response.json()
 
@@ -377,6 +380,9 @@ export default function BatteryNo() {
             const responseByNo = await fetchRef.current(`${baseUrl}/api/getBatteryInfoByNo`, {
                 method: "POST",
                 body: JSON.stringify({ batteryNo: item }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
             }, 2)
             const { code } = await responseByNo.json()
 

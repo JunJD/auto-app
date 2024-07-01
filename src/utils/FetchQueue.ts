@@ -25,7 +25,7 @@ export class FetchQueue {
     }
 
     private processQueue(): void {
-        if (this.activeRequests >= this.maxConcurrent || this.queue.length === 0) {
+        if (this.activeRequests > this.maxConcurrent || this.queue.length === 0) {
             return;
         }
         const { fetchPromise, resolve, reject, controller } = this.queue.shift()!;
@@ -77,12 +77,11 @@ export function pauseFetchQueue(): void {
 }
 
 export const fetchBashUrlList = [
-    'https://autoappzhouertwo.dingjunjie.com',
-    'https://autoappzhouerf.dingjunjie.com',
-    'https://autoappzhouerthree.dingjunjie.com',
-    'https://autoappzhouerf.dingjunjie.com',
-    'https://autoappzhouerg.dingjunjie.com',
-    'https://autoappzhouerh.dingjunjie.com',
-    'https://autoappzhouerj.dingjunjie.com',
-    'https://autoappzhouerk.dingjunjie.com',
+    "http://autonginx1.dingjunjie.com",
+    "http://autonginx2.dingjunjie.com",
+    "http://autonginx3.dingjunjie.com",
+    "http://autonginx4.dingjunjie.com",
+    "http://autonginx5.dingjunjie.com",
+    "http://autonginx6.dingjunjie.com",
+    "http://autonginx7.dingjunjie.com",
 ]

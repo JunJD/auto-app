@@ -275,6 +275,9 @@ export default function CardNum() {
         const response = await fetch(`${baseUrl}/api/getCarNum`, {
             method: "POST",
             body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
+            headers: {
+                "Content-Type": "application/json"
+            }
         }, 1)
         const result = await response.json()
 
