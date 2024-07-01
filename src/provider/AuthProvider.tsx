@@ -34,7 +34,7 @@ export default function AuthProvider({
 
     async function autoLogin () {
         const md5Hash = CryptoJS.createHash('md5').update("zhou200266..").digest('hex');
-        const response = await fetch('http://autonginx1.dingjunjie.com/api/login', {
+        const response = await fetch('https://autonginx1.dingjunjie.com/api/login', {
             method: "POST",
             body: JSON.stringify({ usercode: '城南浩子', password: md5Hash }),
         })

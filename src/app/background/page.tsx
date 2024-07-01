@@ -13,7 +13,7 @@ interface Row {
   enabled: boolean;
 }
 async function createData(deviceId: string, enabled: boolean) {
-  const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
+  const response = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
     method: "POST",
     body: JSON.stringify({ deviceId: deviceId, enabled: enabled }),
     headers: {
@@ -28,7 +28,7 @@ async function createData(deviceId: string, enabled: boolean) {
   return null;
 }
 async function updateData(deviceId: string, enabled: boolean) {
-  const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
+  const response = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
     method: "PUT",
     body: JSON.stringify({ deviceId: deviceId, enabled: enabled }),
     headers: {
@@ -42,7 +42,7 @@ async function updateData(deviceId: string, enabled: boolean) {
   return null;
 }
 async function getData() {
-  const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
+  const response = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
     method: "GET"
   })
   const result = await response.json()
