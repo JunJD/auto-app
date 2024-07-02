@@ -78,10 +78,10 @@ export function pauseFetchQueue(): void {
 
 export const fetchBashUrlList = [
     "https://autonginx1.dingjunjie.com",
-    // "https://autonginx2.dingjunjie.com",
-    // "https://autonginx3.dingjunjie.com",
-    // "https://autonginx4.dingjunjie.com",
-    // "https://autonginx5.dingjunjie.com",
-    // "https://autonginx6.dingjunjie.com",
-    // "https://autonginx7.dingjunjie.com",
+    "https://autonginx2.dingjunjie.com",
+    "https://autonginx3.dingjunjie.com",
+    "https://autonginx4.dingjunjie.com",
+    "https://autonginx5.dingjunjie.com",
+    "https://autonginx6.dingjunjie.com",
+    "https://autonginx7.dingjunjie.com",
 ]

@@ -102,12 +102,14 @@ pub async fn save_qr_code_with_extended_text(
         let (first_part, second_part) = content.split_at(split_index);
 
         // Add "浙品码" to the first line
-        let first_line = format!("浙品码  {}", first_part);
-        let second_line = second_part;
+        let first_line = "浙品码";
+        let second_line = first_part;
+        let three_line = second_part;
         
         
         draw_text_on_image(&font, scale, &first_line, qr_image.height(), &mut final_image, text_color);
-        draw_text_on_image(&font, scale, second_line, qr_image.height() + 40, &mut final_image, text_color); // Offset by 40 pixels for the second line
+        draw_text_on_image(&font, scale, second_line, qr_image.height() + 20, &mut final_image, text_color); // Offset by 40 pixels for the second line
+        draw_text_on_image(&font, scale, three_line, qr_image.height() + 40, &mut final_image, text_color); // Offset by 40 pixels for the second line
 
         // Save the final image to the specified path
         DynamicImage::ImageRgba8(final_image).save(&path)

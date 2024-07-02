@@ -240,14 +240,9 @@ function VerifyBattery() {
 
                 const result = await response.json()
 
-                await delay(1000)
                 if (result.code === 0) {
                     cacheData.current.push(...(dcbhurl.map(it => ({ value: it, key }))))
-                    setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: 'success' }))].filter((item, index) => {
-                        const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
-                        if (findIndex === -1) return true
-                        return findIndex === index
-                    }))
+                    setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: 'success' }))])
                 } else if (result.msg === '操作频繁，请稍后再试') {
                     if (!retryCounts[dcbhurl.join("|")!]) {
                         retryCounts[dcbhurl.join("|")!] = 0;
@@ -297,11 +292,7 @@ function VerifyBattery() {
                 const result = await response.json()
                 if (result.code === 0) {
                     cacheData.current.push({ value: battery!, key })
-                    setValidBattery(prev => [{ value: battery!, key, status: 'success' }, ...prev].filter((item, index) => {
-                        const findIndex = prev.findIndex(prevItem => prevItem.value === item.value)
-                        if (findIndex === -1) return true
-                        return findIndex === index
-                    }))
+                    setValidBattery(prev => [{ value: battery!, key, status: 'success' }, ...prev])
                 } else if (result.msg === '操作频繁，请稍后再试') {
 
                     if (!retryCounts[battery!]) {
