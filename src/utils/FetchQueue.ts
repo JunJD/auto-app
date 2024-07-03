@@ -75,6 +75,18 @@ export function customFetch(input: RequestInfo, init?: RequestInit, priority: nu
 export function pauseFetchQueue(): void {
     fetchQueue.pause();
 }
+const fetchQueue2 = new FetchQueue(3);
+
+export function customFetch2(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response> {
+    return fetchQueue2.enqueue((controller) => {
+        const config = { ...init, signal: controller.signal };
+        return fetch(input, config);
+    }, priority);
+}
+
+export function pauseFetchQueue2(): void {
+    fetchQueue2.pause();
+}
 
 export const fetchBashUrlList = [
     "https://autonginx1.dingjunjie.com",

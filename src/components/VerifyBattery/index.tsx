@@ -14,7 +14,7 @@ import { delay } from '@/utils/fetch';
 import * as xlsx from 'xlsx'
 import ListTable from '../ListTable';
 import { invoke } from '@tauri-apps/api';
-import { pauseFetchQueue, customFetch as fetch, fetchBashUrlList } from '@/utils/FetchQueue';
+import { pauseFetchQueue2 as pauseFetchQueue, customFetch2 as fetch, fetchBashUrlList } from '@/utils/FetchQueue';
 import Select from '@mui/joy/Select';
 import Option from '@mui/joy/Option';
 
@@ -129,15 +129,15 @@ function VerifyBattery() {
     const verifyStart = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setValidBattery([])
+        setNumber(0)
+        setErrMapping(0)
+        cacheData.current = []
+        setLoading(true)
+        const resolveList: Promise<any>[] = []
         const formData = new FormData(event.currentTarget);
 
         const isFlag = formData.get('isFlag') as string;
 
-        setNumber(0)
-        setErrMapping(0)
-        setLoading(true)
-        cacheData.current = []
-        const resolveList: Promise<any>[] = []
         batteryMap.forEach((value, key) => {
             resolveList.push(new Promise(async (resolve) => {
                 const retryCounts = {} as Record<string, number>; // 用于跟踪每个电池的重试次数
@@ -146,13 +146,13 @@ function VerifyBattery() {
                     const batteryType = keyItem[2]
                     if (batteryType === '铅酸') {
                         try {
-                            resolve(await verifyForQS([...value], [...(carNumMap.has(key) ? carNumMap.get(key)!: []), ...carNumMap.get("未知-未知-未知") ?? []]!, key, retryCounts))
+                            resolve(await verifyForQS([...value], [...(carNumMap.has(key) ? carNumMap.get(key)! : []), ...carNumMap.get("未知-未知-未知") ?? []]!, key, retryCounts))
                         } catch {
                             resolve(null)
                         }
                     } else {
                         try {
-                            resolve(await verifyForLD([...value], [...(carNumMap.has(key) ? carNumMap.get(key)!: []), ...carNumMap.get("未知-未知-未知") ?? []], key, retryCounts))
+                            resolve(await verifyForLD([...value], [...(carNumMap.has(key) ? carNumMap.get(key)! : []), ...carNumMap.get("未知-未知-未知") ?? []], key, retryCounts))
                         } catch {
                             resolve(null)
                         }
@@ -210,7 +210,7 @@ function VerifyBattery() {
         // carNums 组成2维数组，四个为一组，最后一组不够的向前面的借
         const groupNum: number = 4
         // const resultList: string[] = []
-        
+
         const dcbhurlList: string[][] = []
         for (let i = 0; i < batterys.length; i += groupNum) {
             const group = batterys.slice(i, i + groupNum)
@@ -222,10 +222,28 @@ function VerifyBattery() {
 
         await Promise.all(dcbhurlList.map(async (dcbhurl) => {
             try {
-                if (!dcbhurl) {                
+                if (!dcbhurl) {
                     return
                 }
+                await delay(3000)
                 const baseUrl = getBaseUrl()
+
+                await Promise.all(dcbhurl.map(async (battery) => {
+                    const response0 = await fetch(`${baseUrl}/api/getBatteryInfo`, {
+                        method: "POST",
+                        body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${battery}` }),
+                        headers: {
+                            "Content-Type": "application/json"
+                        }
+                    }, 1)
+                    const result0 = await response0.json()
+                    if (result0.code !== 0) {
+                        setValidBattery(prev => [...prev, { value: battery!, key, status: result0.msg ?? '未绑定成功' }])
+                        setNumber(prev => prev + 1)
+                        return Promise.reject()
+                    }
+                }))
+
                 const response = await fetch(`${baseUrl}/api/verifyBattery`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -250,7 +268,7 @@ function VerifyBattery() {
                     retryCounts[dcbhurl.join("|")!]++;
 
                     if (retryCounts[dcbhurl.join("|")!] < retryLimit) {
-                        await delay(1000)
+                        await delay(3000 * (10 - retryLimit))
                         await verifyForQS(dcbhurl!, carNums, key, retryCounts, retryLimit - 1)
                     } else {
                         setValidBattery(prev => [...prev, ...dcbhurl.map(it => ({ value: it, key, status: result.msg }))])
@@ -272,12 +290,28 @@ function VerifyBattery() {
 
         await Promise.all(batterys.map(async (battery) => {
             try {
-                const redoBattery = validBattery.find(item => item.value === battery)
+                await delay(3000)
+                const redoBattery = cacheData.current.find(item => item.value === battery)
                 if (redoBattery) {
                     setNumber(prev => prev + 1)
                     return
                 }
                 const baseUrl = getBaseUrl()
+                const response0 = await fetch(`${baseUrl}/api/getBatteryInfo`, {
+                    method: "POST",
+                    body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${battery}` }),
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }, 1)
+                const result0 = await response0.json()
+                if (result0.code !== 0) {
+                    setValidBattery(prev => [...prev, { value: battery!, key, status: result0.msg ?? '未绑定成功' }])
+                    setNumber(prev => prev + 1)
+                    return
+                }
+
+
                 const response = await fetch(`${baseUrl}/api/verifyBattery`, {
                     method: 'POST',
                     body: JSON.stringify({
@@ -288,7 +322,7 @@ function VerifyBattery() {
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                })
+                }, 2)
                 const result = await response.json()
                 if (result.code === 0) {
                     cacheData.current.push({ value: battery!, key })
@@ -301,7 +335,7 @@ function VerifyBattery() {
                     retryCounts[battery!]++;
 
                     if (retryCounts[battery!] < retryLimit) {
-                        await delay(1000);
+                        await delay(3000 * (10 - retryLimit));
                         await verifyForLD([battery], carNums, key, retryCounts, retryLimit - 1)
                     } else {
                         setValidBattery((prev) => {
