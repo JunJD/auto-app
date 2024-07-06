@@ -87,22 +87,32 @@ export default function InfoProvider({
             setCardInfoList(list)
         }
     }
+    
+    function clearRedundantData (list: Array<BatteryListItem>) {
+        const _list = list.filter((it,idx)=>{
+            return (idx < 100 || it.status === 'success')
+        })
+        appStorage.setItem("batteryListItem", JSON.stringify(_list))
+        list.length = 0
+        return _list
+    }
 
     const _setBatteryListItem: Dispatch<SetStateAction<BatteryListItem[]>> = (payload) => {
         if (typeof payload === 'function') {
             setBatteryListItem(prev => {
                 const _list = payload(prev)
+                if(_list.length > 10000) {
+                    return clearRedundantData(_list)
+                }
                 return _list
             })
 
         } else {
-            const _list = payload
-            // 去重复
-            const list = _list.filter((item, index, arr) => {
-                return arr.findIndex(t => t.value === item.value) === index
-            })
-            appStorage.setItem("batteryListItem", JSON.stringify(list))
-            setBatteryListItem(list)
+            let _list = payload
+            if(_list.length > 10000) {
+                _list = clearRedundantData(_list)
+            }
+            setBatteryListItem(_list)
         }
     }
 
