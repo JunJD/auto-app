@@ -142,6 +142,7 @@ export default function BatteryNo() {
         const formData = new FormData(event.currentTarget);
 
         const concurrency = Number(formData.get('concurrency')) as number;
+        const backToBack = formData.get('backToBack');
 
         const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * Math.max(fetchBashUrlList.length, 1));
         fetchRef.current = (input: RequestInfo, init?: RequestInit, priority: number = 0) => {
@@ -198,8 +199,12 @@ export default function BatteryNo() {
             if (current) {
                 currentString = current
                 const item = `${leftV}${currentString}${rightV}`
-
-                list.push(item)
+                if(backToBack==='1') {
+                    const newItem = item.substring(0, item.length-startComplement.length)
+                    list.push(newItem+currentString)
+                } else {
+                    list.push(item)
+                }
             } else {
                 break
             }
@@ -334,6 +339,11 @@ export default function BatteryNo() {
 
                         <FormLabel>并发数</FormLabel>
                         <Input type="number" required name="concurrency" sx={{ flex: 1 }} defaultValue={5} />
+                        <FormLabel>后面一起变</FormLabel>
+                        <Select name="backToBack" defaultValue='2'>
+                            <Option value="1">是</Option>
+                            <Option value="2">否</Option>
+                        </Select>
                         {/* <FormLabel>品牌号</FormLabel> */}
                         {/* <Input name="carBrand" sx={{ flex: 1 }} /> */}
                     </Box>
