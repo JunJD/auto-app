@@ -43,7 +43,9 @@ export default function BatteryNo() {
                     columns: [...columns,
                     { key: 'dcscqy', label: '蓄电池生产企业' },
                     { key: 'dcxh', label: '蓄电池型号' },
-                    { key: 'cjsj', label: '生产日期' },
+                    { key: 'commitdate', label: '生产日期' },
+                    { key: 'yxrq', label: '有效日期' },
+                    { key: 'zhgxsj', label: '拉取日期' },
                     { key: 'URL', label: '网址' },
                     ]
                 },
@@ -268,10 +270,12 @@ export default function BatteryNo() {
                 tableData: {
                     data: cacheData.current,
                     columns: [...columns,
-                    { key: 'dcscqy', label: '蓄电池生产企业' },
-                    { key: 'dcxh', label: '蓄电池型号' },
-                    { key: 'cjsj', label: '生产日期' },
-                    { key: 'URL', label: '网址' },
+                        { key: 'dcscqy', label: '蓄电池生产企业' },
+                        { key: 'dcxh', label: '蓄电池型号' },
+                        { key: 'commitdate', label: '生产日期' },
+                        { key: 'yxrq', label: '有效日期' },
+                        { key: 'zhgxsj', label: '拉取日期' },
+                        { key: 'URL', label: '网址' },
                     ]
                 },
                 folderNameString: '电池码',
