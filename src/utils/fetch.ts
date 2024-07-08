@@ -94,7 +94,7 @@ export const incrementAlphaNumericString = (str: string): string => {
     return result;
 }
 
-const incrementBase36String = (str: string): string | null => {
+export const incrementBase36String = (str: string): string | null => {
     let carry = 1; // 初始化为1来处理最低位的递增
     let result = '';
     const length = str.length;
