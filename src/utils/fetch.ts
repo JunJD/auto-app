@@ -94,3 +94,37 @@ export const incrementAlphaNumericString = (str: string): string => {
     return result;
 }
 
+const incrementBase36String = (str: string): string | null => {
+    let carry = 1; // 初始化为1来处理最低位的递增
+    let result = '';
+    const length = str.length;
+    const allZ = /^[Z]+$/.test(str); // 检查是否全是Z
+
+    if (allZ) return null; // 如果全是Z，则按照要求返回null
+
+    for (let i = length - 1; i >= 0; i--){
+        if (carry === 0){
+            result = str[i] + result; // 如果没有进位，直接拼接剩余的字符
+            continue;
+        }
+
+        let code = str.charCodeAt(i);
+        if (code === 57) { // '9' => 'A'
+            result = 'A' + result;
+            carry = 0;
+        } else if (code === 90) { // 'Z' => '0', 并且处理进位
+            result = '0' + result;
+            carry = 1;
+        } else { // 其他情况，直接递增
+            result = String.fromCharCode(code + 1) + result;
+            carry = 0;
+        }
+    }
+    if (carry === 1) {
+       // 处理如"ZZ"这样的输入，此时carry仍然为1，但上面的逻辑已经处理过"ZZ" ==> "00"的情况，所以仅在所有字符处理完毕后检查。
+       return '1' + result;
+    }
+    
+    return result;
+}
+
