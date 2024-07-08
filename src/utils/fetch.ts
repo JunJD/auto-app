@@ -65,7 +65,6 @@ export const incrementAlphaNumericString = (str: string): string => {
     for (let i = length - 1; i >= 0; i--) {
         const currentChar = str[i];
         let newChar = '';
-
         if (/\d/.test(currentChar)) { // 当前字符是数字
             let newDigit = (parseInt(currentChar) + carry) % 10;
             carry = (parseInt(currentChar) + carry) >= 10 ? 1 : 0;
@@ -81,8 +80,15 @@ export const incrementAlphaNumericString = (str: string): string => {
         result = newChar + result;
     }
 
+    // 如果after the final iteration还有一个carryover, 添加到result的开始
+    // 对于数字，就是'1'; 对于字母，如果从'Z'递增了就应该补上一个'A'
     if (carry > 0) {
-        result = '1' + result;
+        if (/^\d+$/.test(str)) { // 检查整个字符串是否为纯数字
+            result = '1' + result;
+        } else if (/^[A-Z]+$/.test(str)) { // 检查整个字符串是否为纯字母
+            result = 'A' + result;
+        }
+        // 对于混合字符串，不自动前置'1'或'A'，因为carry的行为很难有意义地自动处理
     }
 
     return result;
