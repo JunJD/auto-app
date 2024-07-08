@@ -7,7 +7,7 @@ import Option from '@mui/joy/Option';
 import Stack from "@mui/joy/Stack";
 import FormLabel from '@mui/joy/FormLabel';
 import { FormEvent, useContext, useRef, useState } from "react";
-import { delay, incrementAlphaNumericString, incrementAlphaString, incrementNumberString } from "@/utils/fetch";
+import { delay, incrementAlphaNumericString, incrementAlphaString, incrementNumberString, incrementBase36String } from "@/utils/fetch";
 import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
@@ -193,8 +193,11 @@ export default function BatteryNo() {
                 case "2":
                     current = incrementAlphaString(currentString) ?? ''
                     break;
-                default:
+                case "3":
                     current = incrementAlphaNumericString(currentString) ?? ''
+                    break;
+                default:
+                    current = incrementBase36String(currentString) ?? ''
                     break;
             }
 
@@ -359,6 +362,7 @@ export default function BatteryNo() {
                             <Option value="1">顺码</Option>
                             <Option value="2">乱码</Option>
                             <Option value="3">随机</Option>
+                            <Option value="4">随机(36)</Option>
                         </Select>
                         <FormLabel>起始补充码</FormLabel>
                         <Input required name="startComplement" value={startComplement} onChange={(e) => handleStartComplement(e.target.value)} sx={{ flex: 1 }} />
