@@ -90,7 +90,7 @@ pub async fn save_qr_code_with_extended_text(
         }
 
         // Load font
-        let font_data = include_bytes!("./ZhouZiSongTi7000Zi-2.otf");
+        let font_data = include_bytes!("./AlimamaShuHeiTi-Bold.ttf");
         let font = Font::try_from_bytes(font_data as &[u8]).unwrap();
 
         // Draw text below the QR code using default font
