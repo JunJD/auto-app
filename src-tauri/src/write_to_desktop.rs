@@ -126,13 +126,22 @@ fn draw_text_on_image(font: &Font, scale: Scale, text: &str, y_offset: u32, imag
     let v_metrics = font.v_metrics(scale);
     let glyphs: Vec<_> = font.layout(text, scale, rusttype::point(0.0, v_metrics.ascent)).collect();
 
+    let text_width: f32 = glyphs.iter().rev()
+    .filter_map(|g| g.pixel_bounding_box().map(|bb| bb.min.x as f32 + g.unpositioned().h_metrics().advance_width))
+    .next()
+    .unwrap_or(0.0);
+
+    
+    let x_offset = ((image.width() as f32 - text_width) / 2.0).max(0.0) as i32;
+    
     // Draw the glyphs with opaque background
     for glyph in glyphs {
         if let Some(bounding_box) = glyph.pixel_bounding_box() {
             glyph.draw(|x, y, v| {
-                let x = x as i32 + bounding_box.min.x;
+                let x = x + x_offset as u32 + bounding_box.min.x as u32;
+                // let x = x as i32 + bounding_box.min.x;
                 let y = y as i32 + bounding_box.min.y + y_offset as i32;
-                if x >= 0 && x < image.width() as i32 && y >= 0 && y < image.height() as i32 {
+                if x as i32 >= 0 && x < image.width() as u32 && y >= 0 && y < image.height() as i32 {
                     let pixel = image.get_pixel_mut(x as u32, y as u32);
                     let alpha = (v * 255.0) as u8;
                     let bg_pixel = Rgba([255, 255, 255, 255]); // White background
