@@ -75,9 +75,10 @@ export default function AuthProvider({
             }
         })
         const result = await response.json()
-        if (result.code === 0) {
-            setToken(result.data)
-        }
+        setToken("result.data")
+        // if (result.code === 0) {
+        //     setToken(result.data)
+        // }
     }
 
     function _setToken(token: string) {
@@ -89,7 +90,7 @@ export default function AuthProvider({
         usercode,
         password,
     }: any) {
-        autoLogin(usercode, password)  
+        autoLogin(usercode, password)
     }
 
     if (!deviceId) return (
@@ -119,9 +120,9 @@ export default function AuthProvider({
         </>
     )
 
-    if(!token) {
+    if (!token) {
         return (
-            <Login onSubmit={onSubmit}/>
+            <Login onSubmit={onSubmit} />
         )
     }
 
