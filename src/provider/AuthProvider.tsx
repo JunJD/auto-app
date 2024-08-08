@@ -42,7 +42,7 @@ export default function AuthProvider({
     })
 
     async function getData() {
-        const response = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
+        const response = await fetch('http://autonginx1.dingjunjie.com/api/devices', {
             // const response = await fetch('/api/devices', {
             method: "GET"
         })
@@ -63,11 +63,11 @@ export default function AuthProvider({
     }
 
     async function autoLogin(
-        usercode: string = localStorage.getItem('usercode') ?? '城南浩子2',
+        usercode: string = localStorage.getItem('usercode') ?? '城南浩子',
         password: string = localStorage.getItem('password') ?? "zhou200266.."
     ) {
         const md5Hash = CryptoJS.createHash('md5').update(password).digest('hex');
-        const response = await fetch('https://autonginx1.dingjunjie.com/api/login', {
+        const response = await fetch('http://autonginx1.dingjunjie.com/api/login', {
             method: "POST",
             body: JSON.stringify({ usercode, password: md5Hash }),
             headers: {
