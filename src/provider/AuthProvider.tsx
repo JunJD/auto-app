@@ -75,10 +75,10 @@ export default function AuthProvider({
             }
         })
         const result = await response.json()
-        setToken("result.data")
-        // if (result.code === 0) {
-        //     setToken(result.data)
-        // }
+        // setToken("result.data")
+        if (result.code === 0) {
+            setToken(result.data)
+        }
     }
 
     function _setToken(token: string) {
