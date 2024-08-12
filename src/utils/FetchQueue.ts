@@ -15,11 +15,11 @@ export class FetchQueue {
         const controller = new AbortController();
 
         return new Promise((resolve, reject) => {
-            if(priority === 1) {
+            if (priority === 1) {
                 this.queue.push({ fetchPromise, resolve, reject, controller, priority });
-            } else if(priority === 2) {
+            } else if (priority === 2) {
                 this.queue.unshift({ fetchPromise, resolve, reject, controller, priority });
-            } 
+            }
             this.processQueue();
         });
     }
@@ -79,7 +79,11 @@ const fetchQueue2 = new FetchQueue(3);
 
 export function customFetch2(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response> {
     return fetchQueue2.enqueue((controller) => {
-        const config = { ...init, signal: controller.signal };
+        const config = {
+            "Content-Type": "application/json",
+            ...init,
+            signal: controller.signal
+        };
         return fetch(input, config);
     }, priority);
 }
