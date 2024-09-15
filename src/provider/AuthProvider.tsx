@@ -5,6 +5,7 @@ import { createContext, useEffect, useRef, useState } from "react"
 import * as CryptoJS from 'crypto'
 import { Button, Input, Stack } from "@mui/joy";
 import Login from "@/components/login";
+import { customFetch as fetch } from '@/utils/FetchQueue';
 interface Row {
     deviceId: string;
     enabled: boolean;
@@ -42,7 +43,7 @@ export default function AuthProvider({
     })
 
     async function getData() {
-        const response = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
+        const response: any = await fetch('https://autonginx1.dingjunjie.com/api/devices', {
             // const response = await fetch('/api/devices', {
             method: "GET"
         })
@@ -67,17 +68,17 @@ export default function AuthProvider({
         password: string = localStorage.getItem('password') ?? "zhou200266.."
     ) {
         const md5Hash = CryptoJS.createHash('md5').update(password).digest('hex');
-        const response = await fetch('https://autonginx1.dingjunjie.com/api/login', {
-            method: "POST",
-            body: JSON.stringify({ usercode, password: md5Hash }),
-            headers: {
-                "Content-Type": "application/json"
-            }
+        // 构造URL并添加查询参数
+        const queryParams = new URLSearchParams({ usercode, password: md5Hash, city: '0573' }).toString();
+        const response: any = await fetch(`https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/login?${queryParams}`, {
+            method: "GET",
         })
-        const result = await response.json()
-        // setToken("result.data")
-        if (result.code === 0) {
-            setToken(result.data)
+        if (response.ok) {
+            const result = response.data
+
+            if (response.ok && result.code === 0) {
+                setToken(result.data)
+            }
         }
     }
 

@@ -12,7 +12,7 @@ import { AuthContext } from "@/provider/AuthProvider";
 import ListTable from "@/components/ListTable";
 import { invoke } from '@tauri-apps/api/tauri'
 import { BatteryListItem, InfoContext } from "@/provider/InfoProvider";
-import { FetchQueue, fetchBashUrlList } from '@/utils/FetchQueue';
+import { FetchQueue, appFetch, fetchBashUrlList } from '@/utils/FetchQueue';
 import appStorage from "@/utils/appStorage";
 
 const columns: any = [
@@ -44,8 +44,8 @@ export default function BatteryNo() {
                     { key: 'dcscqy', label: '蓄电池生产企业' },
                     { key: 'dcxh', label: '蓄电池型号' },
                     { key: 'commitdate', label: '生产日期' },
-                    { key: 'yxrq', label: '有效日期' },
-                    { key: 'zhgxsj', label: '拉取日期' },
+                    // { key: 'yxrq', label: '有效日期' },
+                    // { key: 'zhgxsj', label: '拉取日期' },
                     { key: 'URL', label: '网址' },
                     ]
                 },
@@ -148,9 +148,9 @@ export default function BatteryNo() {
 
         const fetchQueue = new FetchQueue((isNaN(concurrency) ? 5 : concurrency) * Math.max(fetchBashUrlList.length, 1));
         fetchRef.current = (input: RequestInfo, init?: RequestInit, priority: number = 0) => {
-            return fetchQueue.enqueue((controller) => {
+            return fetchQueue.enqueue((controller: any) => {
                 const config = { ...init, signal: controller.signal };
-                return fetch(input, config);
+                return appFetch(input as string, config);
             }, priority);
         }
 
@@ -204,9 +204,9 @@ export default function BatteryNo() {
             if (current) {
                 currentString = current
                 const item = `${leftV}${currentString}${rightV}`
-                if(backToBack==='1') {
-                    const newItem = item.substring(0, item.length-startComplement.length)
-                    list.push(newItem+currentString)
+                if (backToBack === '1') {
+                    const newItem = item.substring(0, item.length - startComplement.length)
+                    list.push(newItem + currentString)
                 } else {
                     list.push(item)
                 }
@@ -300,34 +300,54 @@ export default function BatteryNo() {
     }
 
     async function getBatteryNoFetch(item: string) {
-        const baseUrl = getBaseUrl()
-        const response = await fetchRef.current(`${baseUrl}/api/getBatteryInfo`, {
-            method: "POST",
-            body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }, 1)
-        const result = await response.json()
-        if (result.code === 0) {
-            const responseByNo = await fetchRef.current(`${baseUrl}/api/getBatteryInfoByNo`, {
-                method: "POST",
-                body: JSON.stringify({ batteryNo: item }),
-                headers: {
-                    "Content-Type": "application/json"
+        const responseByNo = await fetchRef.current(`https://www.pzcode.cn/pwb/${item}`, {
+            method: "GET",
+            responseType: 'text'
+        }, 2)
+        const text = await responseByNo.data;
+        const 销售单位未入库 = text.includes('销售单位未入库');
+        const 车辆制造商 = text.includes('车辆制造商');
+
+
+
+        let doc = (new DOMParser()).parseFromString(text, 'text/html');
+        const result = Array.from(doc.querySelectorAll('.i-tccc-t')).map((item => {
+            const trim = item.textContent?.replace(/\s+/g, "")
+            return (trim?.split('：'))
+        })).filter(item => item && item?.length >= 2)
+        const data = Object.fromEntries(result as Array<any>)
+
+        if (销售单位未入库 && !车辆制造商) {
+            return {
+                code: 0, msg: 'success', data: {
+                    value: item,
+                    status: 'success',
+                    dcxh: data["蓄电池型号"],
+                    dclx: data["蓄电池类型"],
+                    dcpp: data["蓄电池生产企业"],
+                    dcscqy: data["蓄电池生产企业"],
+                    dcrl: data["蓄电池容量（Ah）"],
+                    commitdate: data["生产日期"],
+                    URL: `https://www.pzcode.cn/pwb/${item}`
                 }
-            }, 2)
-            const { code } = await responseByNo.json()
-
-            if (code === 0) {
-                return { ...result, data: { ...result.data, URL: `https://www.pzcode.cn/pwb/${item}` } }
             }
-            return { ...result, code: 1 }
+        } else {
+            return {
+                code: 1, msg: 'error', data: {
+                    value: item,
+                    status: 'success',
+                    dcxh: data["蓄电池型号"],
+                    dclx: data["蓄电池类型"],
+                    dcpp: data["蓄电池生产企业"],
+                    dcscqy: data["蓄电池生产企业"],
+                    dcrl: data["蓄电池容量（Ah）"],
+                    commitdate: data["生产日期"],
+                    URL: `https://www.pzcode.cn/pwb/${item}`
+                }
+            }
         }
-        return result
+
     }
-
-
 
     return (
         <Stack spacing={2} height={'100%'}>

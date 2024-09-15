@@ -20,6 +20,11 @@
       "fs": {
         "all": false,
         "readFile": true
+      },
+      "http": {
+        "all": true,
+        "request": true,
+        "scope": ["http://*", "https://*"]
       }
     },
     "bundle": {

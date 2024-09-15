@@ -1,6 +1,45 @@
+// import { HttpVerb, fetch } from "@tauri-apps/api/http";
+import { fetch as tauriFetch, ResponseType, Response} from "@tauri-apps/api/http";
+
+const noTauriApiList = [
+    'https://www.pzcode.cn/vin',
+    'https://autonginx1.dingjunjie.com/api/devices'
+] 
+
+const REQUEST_TIMEOUT_MS = 10000;
+export async function appFetch(
+    url: string,
+    options?: Record<string, unknown>,
+): Promise<any> {
+    if (window.__TAURI__ && noTauriApiList.every(item => !url.startsWith(item))) {
+        const payload = options?.body || options?.data;
+        console.log('window.__TAURI__', url, payload)
+        try {
+            const res = await tauriFetch(url, {
+                ...options,
+                body:
+                    payload &&
+                    ({
+                        type: "Text",
+                        payload,
+                    } as any),
+                timeout: ((options?.timeout as number) || REQUEST_TIMEOUT_MS) / 1000,
+                responseType:
+                    options?.responseType == "text" ? ResponseType.Text : ResponseType.JSON,
+            } as any);
+            console.log('go tauri res is', res)
+            return res
+        } catch (error) {
+            console.log('go tauri error is', error)
+        }
+    }
+    console.log('走 window.fetch')
+    return window.fetch(url, options);
+}
+
 export class FetchQueue {
     private maxConcurrent: number;
-    private queue: Array<{ fetchPromise: (controller: AbortController) => Promise<Response>, resolve: (value: Response | PromiseLike<Response>) => void, reject: (reason?: any) => void, controller: AbortController, priority: number }>;
+    private queue: Array<{ fetchPromise: (controller: AbortController) => Promise<Response<any>>, resolve: (value: Response<any> | PromiseLike<Response<any>>) => void, reject: (reason?: any) => void, controller: AbortController, priority: number }>;
     private activeRequests: number;
     private activeControllers: Set<AbortController>;
 
@@ -11,7 +50,7 @@ export class FetchQueue {
         this.activeControllers = new Set();
     }
 
-    enqueue(fetchPromise: (controller: AbortController) => Promise<Response>, priority: number = 0): Promise<Response> {
+    enqueue(fetchPromise: (controller: AbortController) => Promise<Response<any>>, priority: number = 0): Promise<Response<any>> {
         const controller = new AbortController();
 
         return new Promise((resolve, reject) => {
@@ -65,10 +104,10 @@ export class FetchQueue {
 
 const fetchQueue = new FetchQueue(8);
 
-export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response> {
+export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response<any>> {
     return fetchQueue.enqueue((controller) => {
         const config = { ...init, signal: controller.signal };
-        return fetch(input, config);
+        return appFetch(input as string, config);
     }, priority);
 }
 
@@ -77,14 +116,14 @@ export function pauseFetchQueue(): void {
 }
 const fetchQueue2 = new FetchQueue(3);
 
-export function customFetch2(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response> {
+export function customFetch2(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response<any>> {
     return fetchQueue2.enqueue((controller) => {
         const config = {
             "Content-Type": "application/json",
             ...init,
             signal: controller.signal
         };
-        return fetch(input, config);
+        return appFetch(input as string, config);
     }, priority);
 }
 
@@ -93,12 +132,12 @@ export function pauseFetchQueue2(): void {
 }
 
 export const fetchBashUrlList = [
-    "https://autonginx1.dingjunjie.com",
-    "https://autonginx2.dingjunjie.com",
-    "https://autonginx3.dingjunjie.com",
-    "https://autonginx4.dingjunjie.com",
-    "https://autonginx5.dingjunjie.com",
-    "https://autonginx6.dingjunjie.com",
-    "https://autonginx7.dingjunjie.com",
+    "http://127.0.0.1:3001"
+    // "https://autonginx1.dingjunjie.com",
+    // "https://autonginx2.dingjunjie.com",
+    // "https://autonginx3.dingjunjie.com",
+    // "https://autonginx4.dingjunjie.com",
+    // "https://autonginx5.dingjunjie.com",
+    // "https://autonginx6.dingjunjie.com",
+    // "https://autonginx7.dingjunjie.com",
 ]
-

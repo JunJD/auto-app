@@ -190,7 +190,7 @@ export default function CardNum() {
         for (const item of list) {
             resolveList.push(new Promise<CarListItem | null>(async (resolve) => {
                 try {
-                    let result = await getCardNumFetch(item, isFlag==="1")
+                    let result = await getCardNumFetch(item, isFlag === "1")
                     let current: CarListItem = {
                         status: 'pending',
                         value: item,
@@ -268,24 +268,20 @@ export default function CardNum() {
         }
         return fetchBashUrlList[baseUrlIndex.current++]
     }
-    
+
     async function getCardNumFetch(item: string, flag: boolean) {
 
-        const baseUrl = getBaseUrl()
-        
-        const response = await fetch(`${baseUrl}/api/getCarNum`, {
-            method: "POST",
-            body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }, 1)
-        const result = await response.json()
 
-        if (result.code === 0 && flag) {
+        const queryParams = new URLSearchParams({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }).toString();
+        const response: any = await fetch(`https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/hgzinfoquery?${queryParams}`, {
+            method: "GET",
+        }, 1)
+        const result = response.data
+        if (response.ok && result.code === 0 && flag) {
             try {
-                const response = await fetch(`https://www.pzcode.cn/vin/${item}`, {
-                    redirect: 'follow'
+                const response: any = await fetch(`https://www.pzcode.cn/vin/${item}`, {
+                    redirect: 'follow',
+                    responseType: 'text'
                 }, 2)
 
                 const text = await response.text();
@@ -298,7 +294,7 @@ export default function CardNum() {
                 const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it => it && it?.includes('电池编号'));
                 const batteryNum = innerTexts[0]?.replace(/\s+/g, ' ')
 
-                return { ...result, data: { ...result.data, batteryNum }  }
+                return { ...result, data: { ...result.data, batteryNum } }
             } catch (error) {
                 return { ...result, msg: `网址访问失败 https://www.pzcode.cn/vin/${item} `, code: 1 }
             }
@@ -320,11 +316,11 @@ export default function CardNum() {
                                 handleStartPosition("")
                                 handleStartComplement('')
                             }} sx={{ flex: 1 }} />
-                            <FormLabel>是否找电池码</FormLabel>
-                            <Select name="isFlag" sx={{ flex: 1 }} defaultValue={'1'}>
-                                <Option value="1">需要</Option>
-                                <Option value="2">不需要</Option>
-                            </Select>
+                        <FormLabel>是否找电池码</FormLabel>
+                        <Select name="isFlag" sx={{ flex: 1 }} defaultValue={'1'}>
+                            <Option value="1">需要</Option>
+                            <Option value="2">不需要</Option>
+                        </Select>
                     </Box>
                     <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                         <FormLabel>开始位置</FormLabel>
