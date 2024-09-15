@@ -7,8 +7,7 @@ import Stack from '@mui/joy/Stack';
 import TabPanel from '@mui/joy/TabPanel';
 import CardNum from '@/components/CardNum';
 import BatteryNo from '@/components/BatteryNo';
-import VerifyBattery from '@/components/VerifyBattery';
-import Login from '@/components/login';
+
 import BatteryNo2 from '@/components/BatteryNo2';
 
 export default function TabsFlex() {
