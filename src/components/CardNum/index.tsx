@@ -288,6 +288,15 @@ export default function CardNum() {
                         }
                     }
                 }
+                if(text.includes('数据同步中，稍后再试。')) {
+                    return {
+                        code: 1,
+                        msg: '数据同步中，稍后再试',
+                        data: {
+                            
+                        }
+                    }
+                }
 
                 let domParser = new DOMParser();
                 let doc = domParser.parseFromString(text, "text/html");

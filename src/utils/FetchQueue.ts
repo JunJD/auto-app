@@ -131,12 +131,11 @@ export function pauseFetchQueue2(): void {
 }
 
 export const fetchBashUrlList = [
-    "http://127.0.0.1:3001"
-    // "https://autonginx1.dingjunjie.com",
-    // "https://autonginx2.dingjunjie.com",
-    // "https://autonginx3.dingjunjie.com",
-    // "https://autonginx4.dingjunjie.com",
-    // "https://autonginx5.dingjunjie.com",
-    // "https://autonginx6.dingjunjie.com",
-    // "https://autonginx7.dingjunjie.com",
+    "https://autonginx1.dingjunjie.com",
+    "https://autonginx2.dingjunjie.com",
+    "https://autonginx3.dingjunjie.com",
+    "https://autonginx4.dingjunjie.com",
+    "https://autonginx5.dingjunjie.com",
+    "https://autonginx6.dingjunjie.com",
+    "https://autonginx7.dingjunjie.com",
 ]
