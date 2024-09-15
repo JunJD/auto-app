@@ -214,11 +214,11 @@ export default function CardNum() {
                         value: item,
                         status: 'success',
                         // batteryModel: dcxh,
-                        battery_type: result.data.dclx,
-                        bfn_or_oe: result.data.dcpp,
-                        brand: result.data.zwpp,
-                        batteryCapacity: result.data.dcrl,
-                        battery_num: result.data.batteryNum,
+                        battery_type: result.data!.dclx,
+                        bfn_or_oe: result.data!.dcpp,
+                        // brand: result.data!.zwpp,
+                        batteryCapacity: result.data!.dcrl,
+                        battery_num: result.data!.batteryNum,
                     }
 
                     setCardInfoList((prev: CarListItem[]) => {
@@ -270,36 +270,62 @@ export default function CardNum() {
     }
 
     async function getCardNumFetch(item: string, flag: boolean) {
-
-
-        const queryParams = new URLSearchParams({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }).toString();
-        const response: any = await fetch(`https://jgjfjdcgl.gat.zj.gov.cn:5102/inf_zpm/hz_mysql_api/BatteryBinding/hgzinfoquery?${queryParams}`, {
-            method: "GET",
-        }, 1)
-        const result = response.data
-        if (response.ok && result.code === 0 && flag) {
+        if (flag) {
             try {
                 const response: any = await fetch(`https://www.pzcode.cn/vin/${item}`, {
-                    redirect: 'follow',
+                    method: "GET",
                     responseType: 'text'
-                }, 2)
+                }, 1)
+                console.log('response', response)
+                const text = response.data as string
 
-                const text = await response.text();
+                if(text.includes('404:页面未找到')) {
+                    return {
+                        code: 1,
+                        msg: '没有找到该车架号',
+                        data: {
+                            
+                        }
+                    }
+                }
 
                 let domParser = new DOMParser();
                 let doc = domParser.parseFromString(text, "text/html");
 
-                const nodes = doc.querySelectorAll(".i-tccc-t")
 
-                const innerTexts = Array.from(nodes).map(node => node.textContent && node.textContent.trim()).filter(it => it && it?.includes('电池编号'));
+                const nodes = Array.from(doc.querySelectorAll('.i-tccc-t'))
+                
+                
+                const result = nodes.map((item => {
+                    const trim = item.textContent?.replace(/\s+/g, "")
+                    return (trim?.split('：'))
+                })).filter(item => item && item?.length >= 2)
+                const data = Object.fromEntries(result as Array<any>)
+                
+
+                const innerTexts = nodes.map(node => node.textContent && node.textContent.trim()).filter(it => it && it?.includes('电池编号'));
                 const batteryNum = innerTexts[0]?.replace(/\s+/g, ' ')
 
-                return { ...result, data: { ...result.data, batteryNum } }
+                return { code: 0, msg: 'success', data: { 
+                    batteryNum,
+                    value: item,
+                    status: 'success',
+                    dcxh: data["蓄电池型号"],
+                    dclx: data["蓄电池类型"],
+                    dcpp: data["蓄电池生产企业"],
+                    dcscqy: data["蓄电池生产企业"],
+                    dcrl: data["蓄电池容量（Ah）"],
+                    cjsj: data["生产日期"],
+                    URL: `https://www.pzcode.cn/vin/${item}`
+                 } }
             } catch (error) {
-                return { ...result, msg: `网址访问失败 https://www.pzcode.cn/vin/${item} `, code: 1 }
+                return { msg: `网址访问失败 https://www.pzcode.cn/vin/${item} `, code: 1, data: {
+                    value: item,
+                    status: 'error',
+                } }
             }
         }
-        return result
+        return { msg: `必须也查电池码`, code: 1 }
     }
 
     return (

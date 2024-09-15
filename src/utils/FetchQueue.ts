@@ -2,7 +2,6 @@
 import { fetch as tauriFetch, ResponseType, Response} from "@tauri-apps/api/http";
 
 const noTauriApiList = [
-    'https://www.pzcode.cn/vin',
     'https://autonginx1.dingjunjie.com/api/devices'
 ] 
 
@@ -104,7 +103,7 @@ export class FetchQueue {
 
 const fetchQueue = new FetchQueue(8);
 
-export function customFetch(input: RequestInfo, init?: RequestInit, priority: number = 1): Promise<Response<any>> {
+export function customFetch(input: RequestInfo, init?: RequestInit & { responseType?: 'text' | 'json' }, priority: number = 1): Promise<Response<any>> {
     return fetchQueue.enqueue((controller) => {
         const config = { ...init, signal: controller.signal };
         return appFetch(input as string, config);
