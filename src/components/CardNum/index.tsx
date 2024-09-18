@@ -276,7 +276,7 @@ export default function CardNum() {
                     method: "GET",
                     responseType: 'text'
                 }, 1)
-                console.log('response', response)
+
                 const text = response.data as string
 
                 if(text.includes('404:页面未找到')) {

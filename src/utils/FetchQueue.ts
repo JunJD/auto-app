@@ -12,7 +12,6 @@ export async function appFetch(
 ): Promise<any> {
     if (window.__TAURI__ && noTauriApiList.every(item => !url.startsWith(item))) {
         const payload = options?.body || options?.data;
-        console.log('window.__TAURI__', url, payload)
         try {
             const res = await tauriFetch(url, {
                 ...options,
@@ -26,13 +25,12 @@ export async function appFetch(
                 responseType:
                     options?.responseType == "text" ? ResponseType.Text : ResponseType.JSON,
             } as any);
-            console.log('go tauri res is', res)
+
             return res
         } catch (error) {
             console.log('go tauri error is', error)
         }
     }
-    console.log('走 window.fetch')
     return window.fetch(url, options);
 }
 
