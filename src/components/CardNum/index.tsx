@@ -209,7 +209,7 @@ export default function CardNum() {
     async function getCardNumFetch(item: string) {
         const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getCarNum', {
             method: "POST",
-            body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
+            body: JSON.stringify({ token, cjhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item}` }),
         })
         const result = await response.json()
 

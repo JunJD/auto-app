@@ -201,7 +201,7 @@ export default function BatteryNo() {
     async function getBatteryNoFetch(item: string) {
         const response = await fetch('https://autoappzhouer.dingjunjie.com/api/getBatteryInfo', {
             method: "POST",
-            body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
+            body: JSON.stringify({ token, dcbhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}` }),
         })
         const result = await response.json()
 

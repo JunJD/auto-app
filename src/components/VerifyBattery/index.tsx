@@ -141,7 +141,7 @@ function VerifyBattery() {
                 method: 'POST',
                 body: JSON.stringify({
                     token,
-                    dcbhurl: dcbhurl!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
+                    dcbhurl: dcbhurl!.map(item => `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}`).join("|"),
                     cjhurl: getCjhUrlByCarNums(carNums),
                 }),
                 headers: {
@@ -197,7 +197,7 @@ function VerifyBattery() {
                 method: 'POST',
                 body: JSON.stringify({
                     token,
-                    dcbhurl: `https://www.pzcode.cn/pwb/${battery}`,
+                    dcbhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${battery}`,
                     cjhurl: getCjhUrlByCarNums(carNums),
                 }),
                 headers: {
@@ -236,7 +236,7 @@ function VerifyBattery() {
     const getCjhUrlByCarNums = (numList: string[]) => {
         // 随机取
         const randomCarNum = numList[Math.floor(Math.random() * numList.length)]
-        return `https://www.pzcode.cn/vin/${randomCarNum}`
+        return `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${randomCarNum}`
     }
 
     const carNumListLength = React.useMemo(() => {
