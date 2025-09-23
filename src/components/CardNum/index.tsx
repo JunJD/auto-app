@@ -272,7 +272,7 @@ export default function CardNum() {
     async function getCardNumFetch(item: string, flag: boolean) {
         if (flag) {
             try {
-                const response: any = await fetch(`https://www.pzcode.cn/vin/${item}`, {
+                const response: any = await fetch(`https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item}`, {
                     method: "GET",
                     responseType: 'text'
                 }, 1)
@@ -325,10 +325,10 @@ export default function CardNum() {
                     dcscqy: data["蓄电池生产企业"],
                     dcrl: data["蓄电池容量（Ah）"],
                     cjsj: data["生产日期"],
-                    URL: `https://www.pzcode.cn/vin/${item}`
+                    URL: `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item}`
                  } }
             } catch (error) {
-                return { msg: `网址访问失败 https://www.pzcode.cn/vin/${item} `, code: 1, data: {
+                return { msg: `网址访问失败 https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item} `, code: 1, data: {
                     value: item,
                     status: 'error',
                 } }

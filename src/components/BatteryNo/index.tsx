@@ -300,7 +300,7 @@ export default function BatteryNo() {
     }
 
     async function getBatteryNoFetch(item: string) {
-        const responseByNo = await fetchRef.current(`https://www.pzcode.cn/pwb/${item}`, {
+        const responseByNo = await fetchRef.current(`https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}`, {
             method: "GET",
             responseType: 'text'
         }, 2)
@@ -328,7 +328,7 @@ export default function BatteryNo() {
                     dcscqy: data["蓄电池生产企业"],
                     dcrl: data["蓄电池容量（Ah）"],
                     commitdate: data["生产日期"],
-                    URL: `https://www.pzcode.cn/pwb/${item}`
+                    URL: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}`
                 }
             }
         } else {
@@ -342,7 +342,7 @@ export default function BatteryNo() {
                     dcscqy: data["蓄电池生产企业"],
                     dcrl: data["蓄电池容量（Ah）"],
                     commitdate: data["生产日期"],
-                    URL: `https://www.pzcode.cn/pwb/${item}`
+                    URL: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}`
                 }
             }
         }

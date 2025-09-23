@@ -6,7 +6,7 @@ export const POST = async function (req: Request) {
     }
     const { batteryNo } = await req.json()
 
-    const response = await fetch(`https://www.pzcode.cn/pwb/${batteryNo}`, {
+    const response = await fetch(`https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${batteryNo}`, {
         redirect: 'follow',
         // 超时时间
     })
@@ -17,5 +17,5 @@ export const POST = async function (req: Request) {
 
     console.table({销售单位未入库, 车辆制造商});
 
-    return NextResponse.json({ code: 销售单位未入库 && !车辆制造商? 0: 1, url: `https://www.pzcode.cn/pwb/${batteryNo}` }, { status: 200 })
+    return NextResponse.json({ code: 销售单位未入库 && !车辆制造商? 0: 1, url: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${batteryNo}` }, { status: 200 })
 }

@@ -58,7 +58,7 @@ pub async fn save_qr_code_with_extended_text(
     let content = content.to_string();
     spawn_blocking(move || {
         let _lock = file_lock.lock().unwrap();
-        let url = format!("https://www.pzcode.cn/pwb/{}", content);
+        let url = format!("https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/{}", content);
 
         // Create QR code
         let code = QrCode::new(&url)
