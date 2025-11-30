@@ -231,7 +231,7 @@ function VerifyBattery() {
                 await Promise.all(dcbhurl.map(async (battery) => {
                     const response0 = await fetch(`${baseUrl}/api/getBatteryInfo`, {
                         method: "POST",
-                        body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${battery}` }),
+                        body: JSON.stringify({ token, dcbhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${battery}` }),
                         headers: {
                             "Content-Type": "application/json"
                         }
@@ -248,7 +248,7 @@ function VerifyBattery() {
                     method: 'POST',
                     body: JSON.stringify({
                         token,
-                        dcbhurl: dcbhurl!.map(item => `https://www.pzcode.cn/pwb/${item}`).join("|"),
+                        dcbhurl: dcbhurl!.map(item => `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}`).join("|"),
                         cjhurl: getCjhUrlByCarNums(carNums),
                     }),
                     headers: {
@@ -299,7 +299,7 @@ function VerifyBattery() {
                 const baseUrl = getBaseUrl()
                 const response0 = await fetch(`${baseUrl}/api/getBatteryInfo`, {
                     method: "POST",
-                    body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${battery}` }),
+                    body: JSON.stringify({ token, dcbhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${battery}` }),
                     headers: {
                         "Content-Type": "application/json"
                     }
@@ -316,7 +316,7 @@ function VerifyBattery() {
                     method: 'POST',
                     body: JSON.stringify({
                         token,
-                        dcbhurl: `https://www.pzcode.cn/pwb/${battery}`,
+                        dcbhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${battery}`,
                         cjhurl: getCjhUrlByCarNums(carNums),
                     }),
                     headers: {
@@ -361,7 +361,7 @@ function VerifyBattery() {
     const getCjhUrlByCarNums = (numList: string[]) => {
         // 随机取
         const randomCarNum = numList[Math.floor(Math.random() * numList.length)]
-        return `https://www.pzcode.cn/vin/${randomCarNum}`
+        return `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${randomCarNum}`
     }
 
     const carNumListLength = React.useMemo(() => {
@@ -456,7 +456,7 @@ function VerifyBattery() {
         // const reoslves = (await Promise.all(_list.map(async (item) => {
         //     const response = await fetch('https://autonginx1.dingjunjie.com/api/getCarNum', {
         //         method: "POST",
-        //         body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
+        //         body: JSON.stringify({ token, cjhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item}` }),
         //     }, 1)
         //     const result = await response.json()
         //     return { ...result, value: item }

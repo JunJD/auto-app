@@ -303,7 +303,7 @@ export default function BatteryNo() {
         const baseUrl = getBaseUrl()
         const response = await fetchRef.current(`${baseUrl}/api/getBatteryInfo`, {
             method: "POST",
-            body: JSON.stringify({ token, dcbhurl: `https://www.pzcode.cn/pwb/${item}` }),
+            body: JSON.stringify({ token, dcbhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}` }),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -320,7 +320,7 @@ export default function BatteryNo() {
             const { code } = await responseByNo.json()
 
             if (code === 0) {
-                return { ...result, data: { ...result.data, URL: `https://www.pzcode.cn/pwb/${item}` } }
+                return { ...result, data: { ...result.data, URL: `https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/${item}` } }
             }
             return { ...result, code: 1 }
         }

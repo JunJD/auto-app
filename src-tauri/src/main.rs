@@ -55,7 +55,7 @@ async fn find_valid_electro_car_by_ids(array: Vec<String>) -> Result<(), String>
             println!("write_txt: {}", value);
             let _ = write_txt(value.clone(), file_lock.clone(), txt_file_path.clone()).await;
             // value 拼接成url
-            const URL: &str = "https://www.pzcode.cn/vin/";
+            const URL: &str = "https://zlzx.zjamr.zj.gov.cn/pzcode/vin/";
             let url = format!("{}{}", URL, value);
             let _ = save_qr_code_with_extended_text(&url, file_lock.clone(), qr_code_path.clone()).await;
             drop(permit);
@@ -101,7 +101,7 @@ async fn find_battery_nums_by_ids(array: Vec<String>) -> Result<(), String> {
 
             let _ = write_txt(value.clone(), file_lock.clone(), txt_file_path.clone()).await;
             // value 拼接成url
-            const URL: &str = "https://www.pzcode.cn/pwb/";
+            const URL: &str = "https://zlzx.zjamr.zj.gov.cn/pzcode/pwb/";
             let url = format!("{}{}", URL, value);
             let _ = save_qr_code_with_extended_text(&url, file_lock.clone(), qr_code_path.clone()).await;
             drop(permit);

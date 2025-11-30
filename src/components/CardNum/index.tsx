@@ -275,7 +275,7 @@ export default function CardNum() {
         
         const response = await fetch(`${baseUrl}/api/getCarNum`, {
             method: "POST",
-            body: JSON.stringify({ token, cjhurl: `https://www.pzcode.cn/vin/${item}` }),
+            body: JSON.stringify({ token, cjhurl: `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item}` }),
             headers: {
                 "Content-Type": "application/json"
             }
@@ -284,7 +284,7 @@ export default function CardNum() {
 
         if (result.code === 0 && flag) {
             try {
-                const response = await fetch(`https://www.pzcode.cn/vin/${item}`, {
+                const response = await fetch(`https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item}`, {
                     redirect: 'follow'
                 }, 2)
 
@@ -300,7 +300,7 @@ export default function CardNum() {
 
                 return { ...result, data: { ...result.data, batteryNum }  }
             } catch (error) {
-                return { ...result, msg: `网址访问失败 https://www.pzcode.cn/vin/${item} `, code: 1 }
+                return { ...result, msg: `网址访问失败 https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${item} `, code: 1 }
             }
         }
         return result
