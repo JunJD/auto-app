@@ -10,13 +10,13 @@ export const POST = async function (req: Request) {
         }
         const { cardNum } = await req.json()
 
-        const response = await fetch(`https://www.pzcode.cn/vin/${cardNum}`, {
+        const response = await fetch(`https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${cardNum}`, {
             redirect: 'follow'
         })
 
         const text = await response.text();
 
-        return NextResponse.json({ text, url: `https://www.pzcode.cn/vin/${cardNum}` }, { status: 200 })
+        return NextResponse.json({ text, url: `https://zlzx.zjamr.zj.gov.cn/pzcode/vin/${cardNum}` }, { status: 200 })
     } catch (error) {
         return NextResponse.json({ text: ''}, { status: 200 })
 
